@@ -1,12 +1,12 @@
 #!/bin/bash
-# ChromeOS Enrollment Avoidance Script (auto-detects milestone and runs correct commands)
+# ChromeOS Enrollment Avoidance Script (with random serial number support)
 
 fail() {
     echo "[!] $1"
     exit 1
 }
 
-# Detect ChromeOS release version
+# Detect ChromeOS milestone
 if [ -f /etc/lsb-release ]; then
     REL=$(grep -m 1 "^CHROMEOS_RELEASE_CHROME_MILESTONE=" /etc/lsb-release)
     REL="${REL#*=}"
@@ -19,9 +19,33 @@ echo
 read -p "Do you want Verified Mode? (y/N): " VMODE
 
 # --------------------------
+# Serial number randomizer
+# --------------------------
+randomize_serial() {
+    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+        echo "✅ Firmware write protection is disabled."
+
+        # Save original serial number
+        ORIG_SERIAL=$(vpd -g serial_number)
+        echo "$ORIG_SERIAL" > /mnt/stateful_partition/original_serial.txt
+        echo "💾 Original serial number saved: $ORIG_SERIAL"
+
+        # Generate new random serial number
+        NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
+        echo "🔀 New randomized serial: $NEW_SERIAL"
+
+        # Apply new serial
+        vpd -s serial_number="$NEW_SERIAL"
+        echo "✅ Serial number changed successfully."
+    else
+        echo "⚠️ Write protection is still enabled — cannot change serial number."
+        echo "👉 Disable WP first if you want to randomize serial."
+    fi
+}
+
+# --------------------------
 # Version-specific functions
 # --------------------------
-
 r110_lower() {
     echo "[*] Running r110 and lower commands..."
     vpd -i RW_VPD -s check_enrollment=0
@@ -51,8 +75,7 @@ r125_135_verified() {
     vpd -i RW_VPD -s check_enrollment=0
     tpm_manager_client take_ownership
     cryptohome --action=remove_firmware_management_parameters
-    echo "[*] You may also run:"
-    echo "    vpd -s serial_number=NEW_SERIAL_NUMBER_HERE"
+    randomize_serial
     echo "[*] Done. Now powerwash (verified mode)."
 }
 
@@ -66,14 +89,13 @@ r136_plus_dev() {
 
 r136_plus_verified() {
     echo "[*] Running r136+ Verified Mode commands..."
-    echo "vpd -s serial_number=NEW_SERIAL_NUMBER_HERE"
+    randomize_serial
     echo "[*] Then powerwash (verified mode)."
 }
 
 # --------------------------
 # Decision tree
 # --------------------------
-
 if [ "$REL" -le 110 ]; then
     r110_lower
 elif [ "$REL" -ge 111 ] && [ "$REL" -le 124 ]; then
