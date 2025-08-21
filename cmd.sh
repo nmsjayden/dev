@@ -36,24 +36,50 @@ manage_serial() {
         echo "ℹ️ Original serial already saved: $ORIG_SERIAL"
     fi
 
-    # Ask user whether to input a custom serial or randomize
-    read -p "Do you want to enter a custom serial number? (y/N): " CUSTOM
-    if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
-        read -p "Enter the serial number you want to use: " NEW_SERIAL
-    else
-        NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
-        echo "🔀 Generated random serial: $NEW_SERIAL"
-    fi
+    # Offer two options
+    echo
+    echo "Choose an option:"
+    echo "1) Randomize or input new serial"
+    echo "2) Restore original serial"
+    read -p "Enter 1 or 2: " CHOICE
 
-    # Apply serial only if WP is disabled
-    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
-        vpd -s serial_number="$NEW_SERIAL"
-        echo "✅ Serial number set to: $NEW_SERIAL"
+    if [ "$CHOICE" = "1" ]; then
+        # Ask user whether to input a custom serial or randomize
+        read -p "Do you want to enter a custom serial number? (y/N): " CUSTOM
+        if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
+            read -p "Enter the serial number you want to use: " NEW_SERIAL
+        else
+            NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
+            echo "🔀 Generated random serial: $NEW_SERIAL"
+        fi
+
+        # Apply serial only if WP is disabled
+        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+            vpd -s serial_number="$NEW_SERIAL"
+            echo "✅ Serial number set to: $NEW_SERIAL"
+        else
+            echo "⚠️ Write protection is enabled — cannot change serial number."
+        fi
+
+    elif [ "$CHOICE" = "2" ]; then
+        # Restore original serial
+        if [ -f "$ORIG_FILE" ]; then
+            ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
+            echo "🔄 Restoring original serial number: $ORIG_SERIAL"
+            if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+                vpd -s serial_number="$ORIG_SERIAL"
+                echo "✅ Serial number restored successfully."
+            else
+                echo "⚠️ Write protection is still enabled — cannot restore serial number."
+            fi
+        else
+            echo "⚠️ Original serial backup not found at $ORIG_FILE"
+        fi
+
     else
-        echo "⚠️ Write protection is enabled — cannot change serial number."
+        echo "⚠️ Invalid choice, exiting manage_serial."
     fi
 }
-
 # Restore original serial if needed
 restore_serial() {
     ORIG_FILE="/mnt/stateful_partition/original_serial.txt"
