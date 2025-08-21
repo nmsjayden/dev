@@ -110,7 +110,7 @@ r111_124() {
     echo "[*] Running r111–r124 commands..."
     vpd -i RW_VPD -s check_enrollment=0
     tpm_manager_client take_ownership
-    cryptohome --action=remove_firmware_management_parameters
+    device_management_client --action=remove_firmware_management_parameters
     echo "[*] Done. Now powerwash (verified or developer mode)."
 }
 
@@ -128,7 +128,7 @@ r125_135_verified() {
     echo "[*] Running r125–r135 Verified Mode commands..."
     vpd -i RW_VPD -s check_enrollment=0
     tpm_manager_client take_ownership
-    cryptohome --action=remove_firmware_management_parameters
+    device_management_client --action=remove_firmware_management_parameters
     manage_serial
     echo "[*] Done. Now powerwash (verified mode)."
 }
