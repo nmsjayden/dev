@@ -1,5 +1,6 @@
 #!/bin/bash
-# ChromeOS Enrollment Avoidance Script (with random serial number support)
+# ChromeOS Enrollment Avoidance Script
+# Fully debugged with serial backup, restore, and random/manual serial option
 
 fail() {
     echo "[!] $1"
@@ -19,27 +20,54 @@ echo
 read -p "Do you want Verified Mode? (y/N): " VMODE
 
 # --------------------------
-# Serial number randomizer
+# Serial number management
 # --------------------------
-randomize_serial() {
-    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
-        echo "✅ Firmware write protection is disabled."
+manage_serial() {
+    ORIG_FILE="/mnt/stateful_partition/original_serial.txt"
+    mkdir -p /mnt/stateful_partition
 
-        # Save original serial number
+    # Save the original serial if not already saved
+    if [ ! -f "$ORIG_FILE" ]; then
         ORIG_SERIAL=$(vpd -g serial_number)
-        echo "$ORIG_SERIAL" > /mnt/stateful_partition/original_serial.txt
-        echo "💾 Original serial number saved: $ORIG_SERIAL"
-
-        # Generate new random serial number
-        NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
-        echo "🔀 New randomized serial: $NEW_SERIAL"
-
-        # Apply new serial
-        vpd -s serial_number="$NEW_SERIAL"
-        echo "✅ Serial number changed successfully."
+        echo "Original serial: $ORIG_SERIAL" > "$ORIG_FILE"
+        echo "💾 Original serial saved to: $ORIG_FILE"
     else
-        echo "⚠️ Write protection is still enabled — cannot change serial number."
-        echo "👉 Disable WP first if you want to randomize serial."
+        ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
+        echo "ℹ️ Original serial already saved: $ORIG_SERIAL"
+    fi
+
+    # Ask user whether to input a custom serial or randomize
+    read -p "Do you want to enter a custom serial number? (y/N): " CUSTOM
+    if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
+        read -p "Enter the serial number you want to use: " NEW_SERIAL
+    else
+        NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
+        echo "🔀 Generated random serial: $NEW_SERIAL"
+    fi
+
+    # Apply serial only if WP is disabled
+    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+        vpd -s serial_number="$NEW_SERIAL"
+        echo "✅ Serial number set to: $NEW_SERIAL"
+    else
+        echo "⚠️ Write protection is enabled — cannot change serial number."
+    fi
+}
+
+# Restore original serial if needed
+restore_serial() {
+    ORIG_FILE="/mnt/stateful_partition/original_serial.txt"
+    if [ -f "$ORIG_FILE" ]; then
+        ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
+        echo "🔄 Restoring original serial number: $ORIG_SERIAL"
+        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+            vpd -s serial_number="$ORIG_SERIAL"
+            echo "✅ Serial number restored successfully."
+        else
+            echo "⚠️ Write protection is still enabled — cannot restore serial number."
+        fi
+    else
+        echo "⚠️ Original serial backup not found at $ORIG_FILE"
     fi
 }
 
@@ -75,7 +103,7 @@ r125_135_verified() {
     vpd -i RW_VPD -s check_enrollment=0
     tpm_manager_client take_ownership
     cryptohome --action=remove_firmware_management_parameters
-    randomize_serial
+    manage_serial
     echo "[*] Done. Now powerwash (verified mode)."
 }
 
@@ -89,7 +117,7 @@ r136_plus_dev() {
 
 r136_plus_verified() {
     echo "[*] Running r136+ Verified Mode commands..."
-    randomize_serial
+    manage_serial
     echo "[*] Then powerwash (verified mode)."
 }
 
