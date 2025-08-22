@@ -22,21 +22,12 @@ read -p "Do you want Verified Mode? (y/N): " VMODE
 # --------------------------
 # Serial number management
 # --------------------------
+
 manage_serial() {
-    ORIG_FILE="/mnt/stateful_partition/original_serial.txt"
-    mkdir -p /mnt/stateful_partition
+    ORIG_SERIAL=$(vpd -g serial_number)
+    echo "[INFO] Original serial: $ORIG_SERIAL"
+    echo "[NOTE] Write this down if you want to re-enroll later or it should be on the bottom of your cb."
 
-    # Save the original serial if not already saved
-    if [ ! -f "$ORIG_FILE" ]; then
-        ORIG_SERIAL=$(vpd -g serial_number)
-        echo "Original serial: $ORIG_SERIAL" > "$ORIG_FILE"
-        echo "[SAVE] Original serial saved to: $ORIG_FILE"
-    else
-        ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
-        echo "[INFO] Original serial already saved: $ORIG_SERIAL"
-    fi
-
-    # Offer two options
     echo
     echo "Choose an option:"
     echo "1) Randomize or input new serial"
@@ -62,18 +53,14 @@ manage_serial() {
         fi
 
     elif [ "$CHOICE" = "2" ]; then
-        # Restore original serial
-        if [ -f "$ORIG_FILE" ]; then
-            ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
-            echo "[RESTORE] Restoring original serial number: $ORIG_SERIAL"
-            if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
-                vpd -s serial_number="$ORIG_SERIAL"
-                echo "[OK] Serial number restored successfully."
-            else
-                echo "[!] Write protection is still enabled — cannot restore serial number."
-            fi
+        # Prompt for manually-entered original serial
+        read -p "Enter the original serial you wrote down: " INPUT_SERIAL
+        echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
+        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+            vpd -s serial_number="$INPUT_SERIAL"
+            echo "[OK] Serial number restored successfully."
         else
-            echo "[!] Original serial backup not found at $ORIG_FILE"
+            echo "[!] Write protection is still enabled — cannot restore serial number."
         fi
 
     else
@@ -81,20 +68,15 @@ manage_serial() {
     fi
 }
 
-# Restore original serial if needed
+# Restore original serial directly (manual input)
 restore_serial() {
-    ORIG_FILE="/mnt/stateful_partition/original_serial.txt"
-    if [ -f "$ORIG_FILE" ]; then
-        ORIG_SERIAL=$(grep "Original serial:" "$ORIG_FILE" | awk '{print $3}')
-        echo "[RESTORE] Restoring original serial number: $ORIG_SERIAL"
-        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
-            vpd -s serial_number="$ORIG_SERIAL"
-            echo "[OK] Serial number restored successfully."
-        else
-            echo "[!] Write protection is still enabled — cannot restore serial number."
-        fi
+    read -p "Enter the original serial you wrote down: " INPUT_SERIAL
+    echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
+    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+        vpd -s serial_number="$INPUT_SERIAL"
+        echo "[OK] Serial number restored successfully."
     else
-        echo "[!] Original serial backup not found at $ORIG_FILE"
+        echo "[!] Write protection is still enabled — cannot restore serial number."
     fi
 }
 
