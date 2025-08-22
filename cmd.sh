@@ -17,7 +17,7 @@ fi
 
 echo "[*] Detected ChromeOS milestone: r$REL"
 echo
-read -p "Do you want Verified Mode? (y/N): " VMODE
+read -p "Do you want Verified Mode? (Y/N): " VMODE
 
 # --------------------------
 # Serial number management
@@ -36,7 +36,7 @@ manage_serial() {
 
     if [ "$CHOICE" = "1" ]; then
         # Ask user whether to input a custom serial or randomize
-        read -p "Do you want to enter a custom serial number? (y/N): " CUSTOM
+        read -p "Do you want to enter a custom serial number? (Y/N): " CUSTOM
         if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
             read -p "Enter the serial number you want to use: " NEW_SERIAL
         else
