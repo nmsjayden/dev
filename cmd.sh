@@ -32,13 +32,13 @@ manage_serial() {
     echo "Choose an option:"
     echo "1) Randomize or input new serial"
     echo "2) Restore original serial"
-    read -p "Enter 1 or 2: " CHOICE
+    read -p "Enter 1 or 2: " CHOICE < /dev/tty
 
     if [ "$CHOICE" = "1" ]; then
         # Ask user whether to input a custom serial or randomize
-        read -p "Do you want to enter a custom serial number? (Y/N): " CUSTOM
+        read -p "Do you want to enter a custom serial number? (Y/N): " CUSTOM < /dev/tty
         if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
-            read -p "Enter the serial number you want to use: " NEW_SERIAL
+            read -p "Enter the serial number you want to use: " NEW_SERIAL < /dev/tty
         else
             NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
             echo "[GENERATE] Generated random serial: $NEW_SERIAL"
@@ -54,7 +54,7 @@ manage_serial() {
 
     elif [ "$CHOICE" = "2" ]; then
         # Prompt for manually-entered original serial
-        read -p "Enter the original serial you wrote down: " INPUT_SERIAL
+        read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
         echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
         if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
             vpd -s serial_number="$INPUT_SERIAL"
@@ -70,7 +70,7 @@ manage_serial() {
 
 # Restore original serial directly (manual input)
 restore_serial() {
-    read -p "Enter the original serial you wrote down: " INPUT_SERIAL
+    read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
     echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
     if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
         vpd -s serial_number="$INPUT_SERIAL"
