@@ -17,7 +17,7 @@ fi
 
 echo "[*] Detected ChromeOS milestone: r$REL"
 echo
-read -p "Do you want Verified Mode? (Y/N): " VMODE < /dev/tty
+read -p "Do you want Verified Mode (N for Dev Mode)? (Y/N): " VMODE < /dev/tty
 
 # --------------------------
 # Serial number management
