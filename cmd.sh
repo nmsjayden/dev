@@ -24,7 +24,7 @@ read -p "Do you want Verified Mode? (Y/N): " VMODE < /dev/tty
 # --------------------------
 
 manage_serial() {
-    ORIG_SERIAL=$(vpd -g serial_number)
+    ORIG_SERIAL=$(vpd -g serial_number | tr -d '[:space:]')
     echo "[INFO] Original serial: $ORIG_SERIAL"
     echo "[NOTE] Write this down if you want to re-enroll later or it should be on the bottom of your cb."
 
@@ -40,7 +40,9 @@ manage_serial() {
         if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
             read -p "Enter the serial number you want to use: " NEW_SERIAL < /dev/tty
         else
-            NEW_SERIAL="RAND-$(cat /dev/urandom | tr -dc 'A-Z0-9' | head -c12)"
+            # Generate random serial matching the length of the original
+            SERIAL_LEN=${#ORIG_SERIAL}
+            NEW_SERIAL=$(tr -dc 'A-Z0-9' </dev/urandom | head -c"$SERIAL_LEN")
             echo "[GENERATE] Generated random serial: $NEW_SERIAL"
         fi
 
