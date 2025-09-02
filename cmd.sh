@@ -85,6 +85,7 @@ restore_serial() {
 # --------------------------
 # Version-specific functions
 # --------------------------
+
 r110_lower() {
     echo "[*] Running r110 and lower commands..."
     vpd -i RW_VPD -s check_enrollment=0
