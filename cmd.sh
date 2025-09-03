@@ -23,13 +23,14 @@ read -p "Do you want Verified Mode (N for Dev Mode)? (Y/N): " VMODE < /dev/tty
 # Flash Write Protection Check
 # --------------------------
 check_wp() {
+    # Quietly get flash WP status
     local status
-    status=$(flashrom --wp-status 2>/dev/null | grep -i "write protection")
+    status=$(flashrom --wp-status 2>/dev/null | grep -i "Protection mode")
     
     if echo "$status" | grep -iq "disabled"; then
-        return 0  # WP is OFF
+        echo "disabled"
     else
-        return 1  # WP is ON
+        echo "enabled"
     fi
 }
 
@@ -58,8 +59,8 @@ manage_serial() {
             echo "[GENERATE] Generated random serial: $NEW_SERIAL"
         fi
 
-        # Apply serial only if physical WP is disabled
-        if check_wp; then
+        WP_STATE=$(check_wp)
+        if [ "$WP_STATE" = "disabled" ]; then
             vpd -s serial_number="$NEW_SERIAL"
             echo "[OK] Serial number set to: $NEW_SERIAL"
         else
@@ -69,7 +70,8 @@ manage_serial() {
     elif [ "$CHOICE" = "2" ]; then
         read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
         echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
-        if check_wp; then
+        WP_STATE=$(check_wp)
+        if [ "$WP_STATE" = "disabled" ]; then
             vpd -s serial_number="$INPUT_SERIAL"
             echo "[OK] Serial number restored successfully."
         else
@@ -84,7 +86,8 @@ manage_serial() {
 restore_serial() {
     read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
     echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
-    if check_wp; then
+    WP_STATE=$(check_wp)
+    if [ "$WP_STATE" = "disabled" ]; then
         vpd -s serial_number="$INPUT_SERIAL"
         echo "[OK] Serial number restored successfully."
     else
