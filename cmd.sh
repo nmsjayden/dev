@@ -20,9 +20,22 @@ echo
 read -p "Do you want Verified Mode (N for Dev Mode)? (Y/N): " VMODE < /dev/tty
 
 # --------------------------
+# Flash Write Protection Check
+# --------------------------
+check_wp() {
+    local status
+    status=$(flashrom --wp-status 2>/dev/null | grep -i "write protection")
+    
+    if echo "$status" | grep -iq "disabled"; then
+        return 0  # WP is OFF
+    else
+        return 1  # WP is ON
+    fi
+}
+
+# --------------------------
 # Serial number management
 # --------------------------
-
 manage_serial() {
     ORIG_SERIAL=$(vpd -g serial_number | tr -d '[:space:]')
     echo "[INFO] Original serial: $ORIG_SERIAL"
@@ -40,14 +53,13 @@ manage_serial() {
         if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
             read -p "Enter the serial number you want to use: " NEW_SERIAL < /dev/tty
         else
-            # Generate random serial matching the length of the original
             SERIAL_LEN=${#ORIG_SERIAL}
             NEW_SERIAL=$(tr -dc 'A-Z0-9' </dev/urandom | head -c"$SERIAL_LEN")
             echo "[GENERATE] Generated random serial: $NEW_SERIAL"
         fi
 
-        # Apply serial only if WP is disabled
-        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+        # Apply serial only if physical WP is disabled
+        if check_wp; then
             vpd -s serial_number="$NEW_SERIAL"
             echo "[OK] Serial number set to: $NEW_SERIAL"
         else
@@ -55,14 +67,13 @@ manage_serial() {
         fi
 
     elif [ "$CHOICE" = "2" ]; then
-        # Prompt for manually-entered original serial
         read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
         echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
-        if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+        if check_wp; then
             vpd -s serial_number="$INPUT_SERIAL"
             echo "[OK] Serial number restored successfully."
         else
-            echo "[!] Write protection is still enabled — cannot restore serial number."
+            echo "[!] Write protection is enabled — cannot restore serial number."
         fi
 
     else
@@ -70,22 +81,20 @@ manage_serial() {
     fi
 }
 
-# Restore original serial directly (manual input)
 restore_serial() {
     read -p "Enter the original serial you wrote down: " INPUT_SERIAL < /dev/tty
     echo "[RESTORE] Attempting to restore serial number: $INPUT_SERIAL"
-    if [ "$(crossystem wpsw_cur 2>/dev/null)" = "0" ]; then
+    if check_wp; then
         vpd -s serial_number="$INPUT_SERIAL"
         echo "[OK] Serial number restored successfully."
     else
-        echo "[!] Write protection is still enabled — cannot restore serial number."
+        echo "[!] Write protection is enabled — cannot restore serial number."
     fi
 }
 
 # --------------------------
 # Version-specific functions
 # --------------------------
-
 r110_lower() {
     echo "[*] Running r110 and lower commands..."
     vpd -i RW_VPD -s check_enrollment=0
