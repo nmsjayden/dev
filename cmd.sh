@@ -1,13 +1,24 @@
 #!/bin/bash
 # ChromeOS Enrollment Avoidance Script
-# Fully debugged with serial backup, restore, and random/manual serial option
+# Fully debugged for VT2 with serial backup, restore, and random/manual serial option
+
+set -euo pipefail
 
 fail() {
     echo "[!] $1"
     exit 1
 }
 
+# --------------------------
+# Check required commands
+# --------------------------
+for bin in vpd tpm_manager_client device_management_client crossystem flashrom cryptohome initctl; do
+    command -v "$bin" >/dev/null 2>&1 || fail "Missing required command: $bin"
+done
+
+# --------------------------
 # Detect ChromeOS milestone
+# --------------------------
 if [ -f /etc/lsb-release ]; then
     REL=$(grep -m 1 "^CHROMEOS_RELEASE_CHROME_MILESTONE=" /etc/lsb-release)
     REL="${REL#*=}"
@@ -18,15 +29,22 @@ fi
 echo "[*] Detected ChromeOS milestone: r$REL"
 echo
 read -p "Do you want Verified Mode (N for Dev Mode)? (Y/N): " VMODE < /dev/tty
+if [ -z "$VMODE" ]; then
+    echo "[!] No input detected — defaulting to Developer Mode."
+    VMODE="N"
+fi
+
+# Optional: confirm before running
+echo "Selected mode: $( [[ "$VMODE" =~ ^[Yy]$ ]] && echo 'Verified' || echo 'Developer' )"
+read -p "Proceed with these commands? (Y/N): " CONFIRM < /dev/tty
+[[ ! "$CONFIRM" =~ ^[Yy]$ ]] && { echo "[*] Cancelled by user."; exit 0; }
 
 # --------------------------
 # Flash Write Protection Check
 # --------------------------
 check_wp() {
-    # Quietly get flash WP status
     local status
-    status=$(flashrom --wp-status 2>/dev/null | grep -i "Protection mode")
-    
+    status=$(flashrom --wp-status 2>/dev/null | grep -i "Protection mode" || true)
     if echo "$status" | grep -iq "disabled"; then
         echo "disabled"
     else
@@ -40,7 +58,7 @@ check_wp() {
 manage_serial() {
     ORIG_SERIAL=$(vpd -g serial_number | tr -d '[:space:]')
     echo "[INFO] Original serial: $ORIG_SERIAL"
-    echo "[NOTE] Write this down if you want to re-enroll later or it should be on the bottom of your cb."
+    echo "[NOTE] Write this down if you want to re-enroll later or it should be on the bottom of your CB."
 
     echo
     echo "Choose an option:"
@@ -49,13 +67,12 @@ manage_serial() {
     read -p "Enter 1 or 2: " CHOICE < /dev/tty
 
     if [ "$CHOICE" = "1" ]; then
-        # Ask user whether to input a custom serial or randomize
         read -p "Do you want to enter a custom serial number? (Y/N): " CUSTOM < /dev/tty
         if [[ "$CUSTOM" =~ ^[Yy]$ ]]; then
             read -p "Enter the serial number you want to use: " NEW_SERIAL < /dev/tty
         else
             SERIAL_LEN=${#ORIG_SERIAL}
-            NEW_SERIAL=$(tr -dc 'A-Z0-9' </dev/urandom | head -c"$SERIAL_LEN")
+            NEW_SERIAL=$(tr -dc 'A-Z0-9' </dev/urandom | head -c"$SERIAL_LEN" || true)
             echo "[GENERATE] Generated random serial: $NEW_SERIAL"
         fi
 
@@ -167,3 +184,5 @@ elif [ "$REL" -ge 136 ]; then
 else
     fail "Unsupported milestone or detection failed."
 fi
+
+echo "[*] Completed for milestone r$REL in $( [[ "$VMODE" =~ ^[Yy]$ ]] && echo 'Verified' || echo 'Developer' ) mode."
