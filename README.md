@@ -107,6 +107,8 @@ Policies with yaml id > 1040 live in chunked sub-messages and are not supported 
 
 ## License / disclaimer
 
+This tool does **NOT** work with Device policies, only local user policies. 
+
 Use at your own risk. Not affiliated with Google. Intended for debugging and testing on devices you administer.
 
 Inspired by [Pollen](https://github.com/MercuryWorkshop/Pollen), [lilac](https://github.com/MercuryWorkshop/lilac), and [Modmium](https://github.com/CrOSmium/modmium/).
