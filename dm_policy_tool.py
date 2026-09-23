@@ -2466,6 +2466,10 @@ def main():
 
     sub.add_parser("interactive", help="Menu-driven interactive mode")
 
+    if not sys.argv[1:] and not sys.stdin.isatty():
+        print("No subcommand given and stdin isn't a terminal. Pass a "
+              "subcommand (e.g. status), or save the script first.", file=sys.stderr)
+        sys.exit(1)
     argv = sys.argv[1:] if sys.argv[1:] else ["interactive"]
     args = ap.parse_args(argv)
 
