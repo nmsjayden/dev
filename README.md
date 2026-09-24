@@ -6,11 +6,12 @@ Works with the on-disk DM policy blob and (optionally) injects local changes so 
 
 ## Requirements
 
-- ChromeOS in **developer mode**
+- ChromeOS in **developer mode** (or maybe just VT2 root)
 - Managed user signed in
 - `python3`
 - For inject/apply: `cryptography`
 - `iptables` / `ip6tables` for `dm-block` / `apply`
+- Root for **VT2**
 
 If `python3` or base tools are missing then try:
 
