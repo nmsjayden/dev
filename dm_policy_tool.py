@@ -4,9 +4,12 @@
 ChromeOS DM policy tool: fetch / dump / inject / apply / local overrides.
 
 See --help for subcommands. State under /root/policy_editor_state.
+
+Made By: Aro_Moon / Nmsjayden
 """
 
 import argparse
+import contextlib
 import hashlib
 import json
 import os
@@ -23,7 +26,33 @@ except ImportError:
     _HAS_RL = False
 from pathlib import Path
 
+def _drain_stdin():
+    if not sys.stdin.isatty():
+        return ""
+    import select
+    chunks = []
+    while True:
+        r, _, _ = select.select([sys.stdin], [], [], 0)
+        if not r:
+            break
+        try:
+            chunk = os.read(sys.stdin.fileno(), 4096)
+        except OSError:
+            break
+        if not chunk:
+            break
+        chunks.append(chunk)
+    return b"".join(chunks).decode(errors="ignore")
+
 def _eline(prompt, current):
+    pending = _drain_stdin()
+    if pending:
+        if "\r" in pending or "\n" in pending:
+            line = pending.replace("\r", "\n").split("\n", 1)[0].strip()
+            sys.stdout.write("%s%s\n" % (prompt, line))
+            sys.stdout.flush()
+            return line if line else current
+        current = pending
     if _HAS_RL == False:
         typed = input("%s[%s] " % (prompt, current)).strip()
         return typed if typed else current
@@ -73,16 +102,19 @@ def _key():
     fd = sys.stdin.fileno()
     old = termios.tcgetattr(fd)
     try:
-        tty.setraw(fd)
+        tty.setraw(fd, termios.TCSANOW)
+        attrs = termios.tcgetattr(fd)
+        attrs[1] |= (termios.OPOST | termios.ONLCR)
+        termios.tcsetattr(fd, termios.TCSANOW, attrs)
         while True:
-            ch = sys.stdin.read(1)
+            ch = os.read(fd, 1).decode(errors="ignore")
             if ch == '\x1b':
-                seq = sys.stdin.read(2)
+                seq = os.read(fd, 2).decode(errors="ignore")
                 result = {'[A': 'UP', '[B': 'DOWN', '[C': 'RIGHT', '[D': 'LEFT'}.get(seq)
-                while select.select([fd], [], [], 0)[0]:
-                    sys.stdin.read(1)
                 if result:
                     return result
+                while select.select([fd], [], [], 0)[0]:
+                    os.read(fd, 1)
                 continue  # not an arrow key, just noise, keep waiting
             if ch in ('\r', '\n'):
                 return 'ENTER'
@@ -108,7 +140,7 @@ def _menu(title, options, extra_lines=None, subtitle=None):
         print(_BMAGENTA + "|" + _RESET + _bold(_BWHITE + title.center(width) + _RESET) + _BMAGENTA + "|" + _RESET)
         print(_BMAGENTA + "+" + "-" * width + "+" + _RESET)
         if subtitle:
-            print("  %s%s%s" % (_DIM, subtitle, _RESET))
+            print(_DIM + subtitle.center(width) + _RESET)
         print()
         for i, (label, color) in enumerate(items):
             if i == sel:
@@ -123,6 +155,7 @@ def _menu(title, options, extra_lines=None, subtitle=None):
                 print("  " + line)
         print("\n  [%s] move   [%s] select   [%s] back" % (
               "up/down", "enter", "q"))
+        _cls_end()
 
         key = _key()
         if key == 'UP':
@@ -208,6 +241,7 @@ INJECT_KEY_FILE   = SNAPSHOTS_DIR / "inject.key.pem"   # our RSA private key (06
 DM_KEY_BACKUP     = SNAPSHOTS_DIR / "dm.key.pub.bak"   # backup of original DM public key
 INJECT_STATE_FILE = SNAPSHOTS_DIR / "inject_state.json"
 DM_BLOCK_STATE_FILE = SNAPSHOTS_DIR / "dm_block_state.json"
+SYNCED_STATE_FILE = SNAPSHOTS_DIR / "synced_state.json"
 
 ACTION_LOG_FILE = SNAPSHOTS_DIR / "actions.log"
 
@@ -533,7 +567,7 @@ def cmd_fetch(args):
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     existing = sorted(SNAPSHOTS_DIR.glob("*.bin"), key=lambda p: p.stat().st_mtime)
     if existing and existing[-1].read_bytes() == pfr_bytes:
-        print("\nUnchanged since last snapshot (" + existing[-1].name + "), not saving a duplicate.")
+        print("\nUnchanged since last snapshot (" + existing[-1].name + "), not saving.")
     else:
         ts = time.strftime("%Y%m%dT%H%M%S")
         sha = hashlib.sha256(pfr_bytes).hexdigest()[:12]
@@ -795,7 +829,7 @@ def cmd_status(args):
                 shown = "unset" if val == "UNSET" else val
                 print("  %s = %s" % (name, shown))
             if _need_resignin(state):
-                print("  %snot applied yet%s %s(run apply or sign-out)%s" % (_YELLOW, _RESET, _DIM, _RESET))
+                print("  %snot synced yet%s %s(run apply or sign-out)%s" % (_YELLOW, _RESET, _DIM, _RESET))
     else:
         print("%snothing changed, normal policy in effect%s" % (_DIM, _RESET))
 
@@ -903,11 +937,15 @@ def cmd_inject(args):
                 except Exception:
                     pass
 
+    recommended_names = set()
     for kv in (args.set or []):
         if "=" not in kv:
             print("  --set: expected KEY=VALUE, got '%s'" % kv, file=sys.stderr)
             continue
         k, v = kv.split("=", 1)
+        if k.endswith("@recommended"):
+            k = k[:-len("@recommended")]
+            recommended_names.add(k)
         try:
             parsed = json.loads(v)
         except json.JSONDecodeError:
@@ -935,9 +973,9 @@ def cmd_inject(args):
             skipped.append(name)
             continue
         loc = _PN2F[name]
-        loc_overrides[loc] = _encode_pol_value(value)
+        loc_overrides[loc] = _encode_pol_value(value, name in recommended_names)
         chunk, fnum = loc
-        print("  %s = %r" % (name, value))
+        print("  %s = %r%s" % (name, value, " (recommended)" if name in recommended_names else ""))
 
     for name in unset_names:
         if name not in _PN2F:
@@ -976,11 +1014,13 @@ def cmd_inject(args):
     new_pv_bytes = _apply_loc_overrides(pv_raw, loc_overrides)
     new_pd_bytes = _reencode(pd_raw, {4: new_pv_bytes})
 
+    key_created = False
     if INJECT_KEY_FILE.exists() and not args.new_key:
         priv_key = serial.load_pem_private_key(
             INJECT_KEY_FILE.read_bytes(), password=None)
     else:
         print("Generating key...")
+        key_created = True
         priv_key = rsa_m.generate_private_key(public_exponent=65537, key_size=2048)
         pem = priv_key.private_bytes(
             serial.Encoding.PEM,
@@ -1000,7 +1040,18 @@ def cmd_inject(args):
     if not DM_KEY_BACKUP.exists():
         DM_KEY_BACKUP.write_bytes(key_file.read_bytes())
 
-    resignin_needed = True
+    prev_state = {}
+    if INJECT_STATE_FILE.exists():
+        try:
+            prev_state = json.loads(INJECT_STATE_FILE.read_text())
+        except Exception:
+            pass
+    synced_hash = _synced_hash(pv_bytes, INJECT_STATE_FILE.exists())
+    resignin_needed = (
+        key_created
+        or bool(getattr(args, "new_key", False))
+        or hashlib.sha256(new_pv_bytes).hexdigest() != synced_hash
+    )
 
     new_sig      = priv_key.sign(new_pd_bytes, pad.PKCS1v15(), hashes_m.SHA256())
     new_pfr_bytes = _reencode(pfr_raw, {3: new_pd_bytes, 4: new_sig})
@@ -1027,6 +1078,8 @@ def cmd_inject(args):
     key_file.write_bytes(pub_der)       # swap the verification key
     policy_file.write_bytes(new_pfr_bytes)  # write the re-signed policy
     INJECT_STATE_FILE.write_text(json.dumps(state, indent=2))
+    SYNCED_STATE_FILE.write_text(json.dumps(
+        {"hash": synced_hash, "pid": _chrome_pid()}))
 
     print("\n  Key file updated:    %s" % key_file)
     print("  Policy file updated: %s" % policy_file)
@@ -1096,6 +1149,8 @@ def cmd_eject(args):
             print("  After sign-in Chrome will try to fetch fresh from the DM server.")
 
     INJECT_STATE_FILE.unlink()
+    if SYNCED_STATE_FILE.exists():
+        SYNCED_STATE_FILE.unlink()
 
     cmd_dm_block_stop()
 
@@ -1222,6 +1277,11 @@ def cmd_restart_chrome(args):
     print("Done.")
 
 
+class _Rec:
+    def __init__(self, value):
+        self.value = value
+
+
 def _do_preset(changes):
     sets, unsets, skipped = [], [], []
     for name, val in changes.items():
@@ -1230,6 +1290,8 @@ def _do_preset(changes):
             continue
         if val is None:
             unsets.append(name)
+        elif isinstance(val, _Rec):
+            sets.append("%s@recommended=%s" % (name, json.dumps(val.value)))
         else:
             sets.append("%s=%s" % (name, json.dumps(val)))
     if skipped:
@@ -1255,6 +1317,7 @@ def _try_apply():
     print("\n%sSigning out...%s" % (_YELLOW, _RESET))
     cmd_sign_out(argparse.Namespace())
     print("\nSign back in, then come back here.")
+    _cls_end()
     try:
         input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
     except EOFError:
@@ -1272,7 +1335,7 @@ def _offer_so():
     if not _need_resignin(state):
         return
     print()
-    print("%sNot applied yet. Trying `apply`...%s" % (_BYELLOW, _RESET))
+    print("%sNot synced yet. Trying `apply`...%s" % (_BYELLOW, _RESET))
     _try_apply()
 
 def _do_fetch():
@@ -1518,14 +1581,24 @@ def _cs_field(loc):
     raw = next((v for f, w, v in sub_raw if f == fnum), None)
     return raw, None
 
-def _encode_pol_value(value):
+def _encode_pol_value(value, recommended=False):
     """Encode a Python value as *PolicyProto bytes (field2 payload wrapper)."""
+    body = _encode_pol_body(value)
+    if recommended:
+        return _enc_field(1, 2, _enc_field(1, 0, 1)) + body
+    return body
+
+
+def _encode_pol_body(value):
     ptype = _ptype(value)
     if ptype == 'bool':
         bval = value if isinstance(value, bool) else str(value).lower() == 'true'
         return _enc_field(2, 0, 1 if bval else 0)
     if ptype == 'int':
         return _enc_field(2, 0, int(value))
+    if isinstance(value, list) and all(isinstance(e, str) for e in value):
+        entries = b"".join(_enc_field(1, 2, e.encode()) for e in value)
+        return _enc_field(2, 2, entries)
     str_value = value if isinstance(value, str) else (
         json.dumps(value) if isinstance(value, (dict, list)) else str(value))
     return _enc_field(2, 2, str_value.encode())
@@ -1665,6 +1738,19 @@ def _chrome_pid():
             continue
         return int(pid)
     return None
+
+
+def _synced_hash(pv_bytes, injected):
+    current = _chrome_pid()
+    try:
+        rec = json.loads(SYNCED_STATE_FILE.read_text())
+        if (injected and rec.get("hash")
+                and (rec.get("pid") is None or current is None
+                     or rec["pid"] == current)):
+            return rec["hash"]
+    except Exception:
+        pass
+    return hashlib.sha256(pv_bytes).hexdigest()
 
 
 def _need_resignin(state):
@@ -1853,6 +1939,7 @@ def _browse():
             if err == "no_live_policy":
                 _cls()
                 print(_RED + "No live user policy found. Sign in first." + _RESET)
+                _cls_end()
                 try:
                     input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
                 except EOFError:
@@ -1887,17 +1974,18 @@ def _browse():
             except Exception:
                 pass
         if inj_state and _need_resignin(inj_state):
-            status_word = "%snot applied%s" % (_YELLOW, _RESET)
+            word, color = "not synced", _YELLOW
         elif INJECT_STATE_FILE.exists():
-            status_word = "%sapplied%s" % (_BGREEN, _RESET)
+            word, color = "synced", _BGREEN
         else:
-            status_word = "%sno changes%s" % (_DIM, _RESET)
-        line = "  %s" % status_word
+            word, color = "no changes", _DIM
+        padded = word.center(width)
+        print(padded.replace(word, "%s%s%s" % (color, word, _RESET), 1))
         if digit_buf:
-            line += "   %sgo %s%s" % (_CYAN, digit_buf, _RESET)
-        print(line)
-        print(_DIM + "\n  up/down  enter toggle/edit  / search  x unset  a apply  "
-                     "id+enter jump  q back" + _RESET)
+            print(("go %s" % digit_buf).center(width))
+        print(_DIM + "\n  [up/down] move  [enter] toggle/edit  [/] search  [x] unset  "
+                     "[a] apply  [id+enter] jump  [q] back" + _RESET)
+        _cls_end()
 
         key = _key()
         if key == 'UP':
@@ -1917,7 +2005,7 @@ def _browse():
                 return
         elif key == '/':
             try:
-                query = input("\n%sSearch: %s" % (_CYAN, _RESET)).strip()
+                query = _eline("\n%sSearch: %s" % (_CYAN, _RESET), "").strip()
             except EOFError:
                 return
             filtered = ([n for n in all_names if query.lower() in n.lower()]
@@ -1934,12 +2022,16 @@ def _browse():
         elif key in ('x', 'X'):
             name, chunk, fnum, kind, val = rows[sel - window_start]
             if kind != 'unset':
-                cmd_inject(argparse.Namespace(
-                    profile=None, also_active=False, set=None, unset=[name],
-                    force=True, new_key=False))
+                with _quiet():
+                    cmd_inject(argparse.Namespace(
+                        profile=None, also_active=False, set=None, unset=[name],
+                        force=True, new_key=False))
         elif key in ('a', 'A'):
             _cls()
-            if _try_apply():
+            _cls_end()
+            ok = _try_apply()
+            _cls_end()
+            if ok:
                 try:
                     input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
                 except EOFError:
@@ -1957,57 +2049,67 @@ def _browse():
                 window_start = max(0, sel - page_size // 2)
                 continue
             name, chunk, fnum, kind, val = rows[sel - window_start]
-            if kind == 'unset' or (kind == 'int' and val in (0, 1)):
-                cur = 0 if kind == 'unset' else int(val)
-                cmd_inject(argparse.Namespace(
-                    profile=None, also_active=False,
-                    set=["%s=%s" % (name, 0 if cur else 1)],
-                    unset=None, force=True, new_key=False))
+            if kind == 'int' and val in (0, 1):
+                with _quiet():
+                    cmd_inject(argparse.Namespace(
+                        profile=None, also_active=False,
+                        set=["%s=%s" % (name, 0 if val else 1)],
+                        unset=None, force=True, new_key=False))
             else:
                 _cls()
                 default = "" if kind == 'unset' else str(val)
                 print("Editing %s:" % _bold(name))
+                _cls_end()
                 new_val = _eline("> ", default)
                 if not new_val:
                     new_val = default
                 if new_val:
-                    cmd_inject(argparse.Namespace(
-                        profile=None, also_active=False,
-                        set=["%s=%s" % (name, new_val)],
-                        unset=None, force=True, new_key=False))
+                    with _quiet():
+                        cmd_inject(argparse.Namespace(
+                            profile=None, also_active=False,
+                            set=["%s=%s" % (name, new_val)],
+                            unset=None, force=True, new_key=False))
 
+
+
+class _EolStdout:
+    def __init__(self, real):
+        self._real = real
+
+    def write(self, s):
+        return self._real.write(s.replace("\n", "\033[K\n"))
+
+    def __getattr__(self, name):
+        return getattr(self._real, name)
+
+_REAL_STDOUT = sys.stdout
+
+@contextlib.contextmanager
+def _quiet():
+    old = sys.stdout
+    try:
+        sys.stdout = open(os.devnull, "w")
+        yield
+    finally:
+        sys.stdout.close()
+        sys.stdout = old
 
 
 def _cls():
-    # clear terminal
-    if _COLOR:  # only clear when attached to a real terminal
-        sys.stdout.write("\033[2J\033[H")
+    if _COLOR:
+        sys.stdout = _EolStdout(_REAL_STDOUT)
+        _REAL_STDOUT.write("\033[H")
+        _REAL_STDOUT.flush()
+
+def _cls_end():
+    if _COLOR:
+        sys.stdout = _REAL_STDOUT
+        sys.stdout.write("\033[J")
         sys.stdout.flush()
 
 UNMANAGE_SET = {
-    "AllowDeletingBrowserHistory": True,
-    "DeveloperToolsDisabled": False,
     "DeveloperToolsAvailability": 1,
     "ExtensionDeveloperModeSettings": 0,
-    "DisableSafeBrowsingProceedAnyway": False,
-    "PasswordManagerAllowShowPasswords": True,
-    "PasswordManagerEnabled": True,
-    "IncognitoEnabled": True,
-    "IncognitoModeAvailability": 0,
-    "BrowserGuestModeEnabled": True,
-    "BrowserGuestModeEnforced": False,
-    "EnableSyncConsent": True,
-    "ExternalStorageDisabled": False,
-    "ChromeOsLockOnIdleSuspend": False,
-    "DriveDisabled": False,
-    "DriveDisabledOverCellular": False,
-    "GoogleDriveDisabled": False,
-    "TaskManagerEndProcessEnabled": True,
-    "ScreenCaptureAllowed": True,
-    "SharedClipboardEnabled": True,
-    "AllowScreenWakeLocks": True,
-    "AllowWakeLocks": True,
-    "AllowScreenLock": True,
     "VmManagementCliAllowed": True,
     "SystemTerminalSshAllowed": True,
     "CrostiniAllowed": True,
@@ -2029,171 +2131,71 @@ UNMANAGE_SET = {
     "ClassManagementCaptionsEnabled": False,
     "ClassManagementClassroomIntegrationEnabled": False,
     "ClassManagementNetworkRestrictionEnabled": False,
-    "AttestationEnabledForUser": False,
-    "ExtensionInstallBlocklist": None,
-    "ExtensionInstallForcelist": None,
-    "ExtensionInstallAllowlist": None,
-    "ExtensionAllowedTypes": None,
-    "ExtensionSettings": None,
-    "ExtensionInstallSources": None,
-    "ExtensionInstallTypeBlocklist": None,
-    "ExtensionUnpackedModeEnabled": True,
-    "MetricsReportingEnabled": False,
-    "UrlKeyedAnonymizedDataCollectionEnabled": False,
-    "SafeBrowsingExtendedReportingEnabled": False,
-    "HttpsOnlyMode": "allowed",
-    "HttpsUpgradesEnabled": True,
-    "HttpAllowlist": None,
-    "URLBlocklist": None,
-    "URLAllowlist": None,
-    "SSLErrorOverrideAllowed": True,
-    "SSLErrorOverrideAllowedForOrigins": None,
-    "RemoteDebuggingAllowed": True,
-    "ForceGoogleSafeSearch": False,
-    "ForceYouTubeRestrict": 0,
-    "YouTubeRestrict": 0,
-    "SafeSitesFilterBehavior": 0,
-    "SafeBrowsingProtectionLevel": 0,
-    "SafeBrowsingForTrustedSourcesEnabled": True,
-    "SafeSearchEnabled": False,
-    "PasswordLeakDetectionEnabled": False,
-    "PasswordProtectionWarningTrigger": 0,
-    "PasswordProtectionLoginURLs": None,
-    "PasswordProtectionChangePasswordURL": None,
-    "TranslateEnabled": True,
-    "SpellcheckEnabled": True,
-    "SpellCheckServiceEnabled": True,
-    "SearchSuggestEnabled": True,
-    "NetworkPredictionOptions": 0,
-    "DnsOverHttpsMode": "automatic",
-    "DnsOverHttpsTemplates": None,
-    "BuiltInDnsClientEnabled": True,
-    "AdditionalDnsQueryTypesEnabled": True,
-    "QuicAllowed": True,
-    "AudioCaptureAllowed": True,
-    "VideoCaptureAllowed": True,
-    "DefaultGeolocationSetting": 0,
-    "DefaultNotificationsSetting": 0,
-    "DefaultPopupsSetting": 0,
-    "DefaultJavaScriptSetting": 1,
-    "DefaultImagesSetting": 1,
-    "DefaultCookiesSetting": 1,
-    "DefaultPluginsSetting": 1,
-    "DefaultMediaStreamSetting": 0,
-    "DefaultInsecureContentSetting": 0,
-    "BlockThirdPartyCookies": False,
-    "JavascriptEnabled": True,
-    "ImagesEnabled": True,
-    "CookiesEnabled": True,
-    "AutofillAddressEnabled": True,
-    "AutofillCreditCardEnabled": True,
-    "BookmarkBarEnabled": True,
-    "EditBookmarksEnabled": True,
-    "ManagedBookmarks": None,
-    "ManagedBookmarksFolderName": None,
-    "PrintingEnabled": True,
-    "CloudPrintSubmitEnabled": True,
-    "PrintPreviewUseSystemDefaultPrinter": None,
-    "DefaultPrinterSelection": None,
     "CastReceiverEnabled": True,
-    "MediaRouterCastAllowAllIPs": True,
     "AccessCodeCastEnabled": True,
-    "SyncDisabled": False,
-    "BrowserSignin": 1,
-    "SecondaryGoogleAccountSigninAllowed": True,
-    "PromotionalTabsEnabled": True,
-    "HomepageIsNewTabPage": None,
-    "HomepageLocation": None,
-    "NewTabPageLocation": None,
-    "RestoreOnStartup": None,
-    "RestoreOnStartupURLs": None,
-    "ImportAutofillFormData": True,
-    "ImportBookmarks": True,
-    "ImportHistory": True,
-    "ImportSavedPasswords": True,
-    "ImportSearchEngine": True,
-    "AllowFileSelectionDialogs": True,
-    "DownloadRestrictions": 0,
-    "DownloadDirectory": None,
-    "DefaultDownloadDirectory": None,
-    "PromptForDownloadLocation": None,
-    "NativeMessagingBlocklist": None,
-    "NativeMessagingAllowlist": None,
-    "NativeMessagingUserLevelHosts": True,
-    "ComponentExtensionsWithBackgroundPages": None,
-    "ForceEphemeralProfiles": False,
-    "UserFeedbackAllowed": True,
-    "CloudReportingEnabled": False,
-    "CloudProfileReportingEnabled": False,
-    "ChromeCleanupReportingEnabled": False,
-    "AllowNativeNotifications": True,
-    "AllowSystemNotifications": True,
-    "BackgroundModeEnabled": True,
-    "WebRtcEventLogCollectionAllowed": False,
-    "WebRtcIPHandling": None,
-    "WebRtcUdpPortRange": None,
-    "AbusiveExperienceInterventionEnforce": False,
-    "AdsSettingForIntrusiveAdsSites": 0,
-    "InsecureContentAllowedForUrls": None,
-    "InsecureContentBlockedForUrls": None,
-    "SitePerProcess": None,
-    "IsolateOrigins": None,
-    "PopupsAllowedForUrls": None,
-    "PopupsBlockedForUrls": None,
-    "CookiesAllowedForUrls": None,
-    "CookiesBlockedForUrls": None,
-    "ImagesAllowedForUrls": None,
-    "ImagesBlockedForUrls": None,
-    "JavaScriptAllowedForUrls": None,
-    "JavaScriptBlockedForUrls": None,
-    "NotificationsAllowedForUrls": None,
-    "NotificationsBlockedForUrls": None,
-    "GeolocationAllowedForUrls": None,
-    "GeolocationBlockedForUrls": None,
-    "MediaStreamCameraEnabled": True,
-    "MediaStreamMicEnabled": True,
-    "SerialAllowAllPortsForUrls": None,
-    "SerialAskForUrls": None,
-    "SerialBlockedForUrls": None,
-    "UsbAllowDevicesForUrls": None,
-    "WebUsbAllowDevicesForUrls": None,
-    "WebHidAllowDevicesForUrls": None,
-    "WebHidAskForUrls": None,
-    "WebHidBlockedForUrls": None,
-    "ClipboardAllowedForUrls": None,
-    "ClipboardBlockedForUrls": None,
-    "FileSystemReadAskForUrls": None,
-    "FileSystemReadBlockedForUrls": None,
-    "FileSystemWriteAskForUrls": None,
-    "FileSystemWriteBlockedForUrls": None,
-    "LocalNetworkAccessRestrictionsEnabled": False,
-    "LocalNetworkAccessAllowedForUrls": None,
-    "LocalNetworkAccessBlockedForUrls": None,
-    "EnterpriseHardwarePlatformAPIEnabled": True,
-    "ClickToCallEnabled": True,
     "ChromeOsMultiProfileUserBehavior": "unrestricted",
-    "TrashEnabled": True,
     "ShowFullUrlsInAddressBar": True,
-    "NTPContentSuggestionsEnabled": True,
-    "NTPCustomBackgroundEnabled": True,
-    "AlternateErrorPagesEnabled": True,
-    "CertificateTransparencyEnforcementDisabledForUrls": None,
-    "CertificateTransparencyEnforcementDisabledForCas": None,
-    "CertificateTransparencyEnforcementDisabledForLegacyCas": None,
-    "SavingBrowserHistoryDisabled": False,
-    "PrintingAPIExtensionsAllowlist": None,
 }
 
 
+UNMANAGE_UNLOCK = {
+    "AllowDinosaurEasterEgg": _Rec(True),
+    "AllowPopupsDuringPageUnload": _Rec(False),
+    "AllowSyncXHRInPageDismissal": _Rec(False),
+    "AllowedLocalAuthFactors": _Rec(['ALL']),
+    "ArcBackupRestoreServiceEnabled": _Rec(0),
+    "ArcGoogleLocationServicesEnabled": _Rec(0),
+    "CaptivePortalAuthenticationIgnoresProxy": _Rec(False),
+    "DnsOverHttpsMode": _Rec('automatic'),
+    "EasyUnlockAllowed": _Rec(True),
+    "EmojiPickerGifSupportEnabled": _Rec(True),
+    "EmojiSuggestionEnabled": _Rec(False),
+    "FastPairEnabled": _Rec(True),
+    "FocusModeSoundsEnabled": _Rec('disabled'),
+    "GenAiDefaultSettings": _Rec(0),
+    "GlanceablesEnabled": _Rec(True),
+    "GoogleWorkspaceCloudUpload": _Rec('allowed'),
+    "LacrosAllowed": _Rec(False),
+    "LacrosAvailability": _Rec('user_choice'),
+    "LacrosSecondaryProfilesAllowed": _Rec(True),
+    "LacrosSelection": _Rec('user_choice'),
+    "LoginDisplayPasswordButtonEnabled": _Rec(True),
+    "MicrosoftOfficeCloudUpload": _Rec('allowed'),
+    "MicrosoftOneDriveAccountRestrictions": _Rec(['common']),
+    "MicrosoftOneDriveMount": _Rec('allowed'),
+    "NTLMShareAuthenticationEnabled": _Rec(True),
+    "NTPCustomBackgroundEnabled": _Rec(True),
+    "NativeClientForceAllowed": _Rec(False),
+    "NetBiosShareDiscoveryEnabled": _Rec(True),
+    "OrcaEnabled": _Rec(True),
+    "OsColorMode": _Rec('light'),
+    "PinUnlockAutosubmitEnabled": _Rec(False),
+    "QuickOfficeForceFileDownloadEnabled": _Rec(True),
+    "QuickUnlockModeAllowlist": _Rec(['all']),
+    "QuickUnlockModeWhitelist": _Rec(['all']),
+    "RecoveryFactorBehavior": _Rec(True),
+    "ShowAiIntroScreenEnabled": _Rec(True),
+    "ShowCastSessionsStartedByOtherDevices": _Rec(True),
+    "ShowDisplaySizeScreenEnabled": _Rec(True),
+    "ShowGeminiIntroScreenEnabled": _Rec(True),
+    "ShowHumanPresenceSensorScreenEnabled": _Rec(True),
+    "ShowTouchpadScrollScreenEnabled": _Rec(True),
+    "SuggestedContentEnabled": _Rec(True),
+    "WifiSyncAndroidAllowed": _Rec(False),
+}
+
 def _unmanage():
-    """Unset everything on the real blob, then force the values that actually turn things back on."""
-    real_snap = _real_snap()
-    if real_snap is None:
-        return dict(UNMANAGE_SET)
-    _, pd_bytes = real_snap
+    """Unset everything on the live blob, then force the values that actually turn things back on."""
+    pol_file, _ = _user_pol_files()
+    if pol_file is None:
+        return {**UNMANAGE_UNLOCK, **UNMANAGE_SET}
+    _, pd_bytes = _get_field(_parse_raw(pol_file.read_bytes()), 3)
+    if not pd_bytes:
+        return {**UNMANAGE_UNLOCK, **UNMANAGE_SET}
     locs = _cs_locs_from_pd(pd_bytes)
     loc_to_name = {loc: n for n, loc in _PN2F.items()}
     overrides = {loc_to_name[loc]: None for loc in locs if loc in loc_to_name}
+    overrides.update(UNMANAGE_UNLOCK)
     overrides.update(UNMANAGE_SET)
     return overrides
 
@@ -2214,6 +2216,77 @@ PRESETS = {
         "ExtensionSettings": None,
         "IncognitoModeAvailability": None,
     },
+    "Wi-Fi": {
+        "OpenNetworkConfiguration": None,
+        "ProxySettings": None,
+        "ProxyMode": None,
+        "ProxyServerMode": None,
+        "ProxyServer": None,
+        "ProxyPacUrl": None,
+        "ProxyBypassList": None,
+        "ProxyOverrideRules": None,
+        "EnableProxyOverrideRulesForAllUsers": None,
+        "SystemProxySettings": None,
+        "VpnConfigAllowed": None,
+        "AlwaysOnVpnPreConnectUrlAllowlist": None,
+        "CaptivePortalAuthenticationIgnoresProxy": None,
+        "DnsOverHttpsMode": _Rec("automatic"),
+        "DnsOverHttpsTemplates": None,
+        "WifiSyncAndroidAllowed": True,
+        "InstantTetheringAllowed": True,
+    },
+    "Accounts": {
+        "BrowserGuestModeEnabled": True,
+        "BrowserGuestModeEnforced": None,
+        "BrowserAddPersonEnabled": None,
+        "SigninAllowed": None,
+        "BrowserSignin": None,
+        "ForceBrowserSignin": None,
+        "SecondaryGoogleAccountSigninAllowed": None,
+        "SecondaryGoogleAccountUsage": None,
+        "RestrictSigninToPattern": None,
+        "RestrictAccountsToPatterns": None,
+        "ManagedAccountsSigninRestriction": None,
+        "SigninInterceptionEnabled": None,
+        "ProfileSeparationSettings": None,
+        "ProfileSeparationDomainExceptionList": None,
+        "ProfileSeparationDataMigrationSettings": None,
+        "ForceEphemeralProfiles": None,
+        "ProfilePickerOnStartupAvailability": None,
+        "ProfileReauthPrompt": None,
+        "SyncDisabled": None,
+        "SyncTypesListDisabled": None,
+        "EnableSyncConsent": None,
+        "SupervisedUserCreationEnabled": None,
+        "SupervisedUsersEnabled": None,
+        "UserAvatarCustomizationSelectorsEnabled": None,
+        "ChromeOsMultiProfileUserBehavior": "unrestricted",
+        "LacrosSecondaryProfilesAllowed": True,
+        "AllowScreenLock": None,
+        "ChromeOsLockOnIdleSuspend": None,
+        "ScreenLockDelayAC": None,
+        "ScreenLockDelayBattery": None,
+        "ScreenLockDelays": None,
+        "LockScreenReauthenticationEnabled": None,
+        "LockScreenAutoStartOnlineReauth": None,
+        "GaiaOfflineSigninTimeLimitDays": None,
+        "GaiaLockScreenOfflineSigninTimeLimitDays": None,
+        "SamlLockScreenOfflineSigninTimeLimitDays": None,
+        "SAMLOfflineSigninTimeLimit": None,
+        "EasyUnlockAllowed": True,
+        "SmartLockSigninAllowed": True,
+        "RecoveryFactorBehavior": True,
+        "LoginDisplayPasswordButtonEnabled": True,
+        "PinUnlockAutosubmitEnabled": True,
+        "PinUnlockMinimumLength": None,
+        "PinUnlockMaximumLength": None,
+        "PinUnlockWeakPinsAllowed": None,
+        "QuickUnlockTimeout": None,
+        "QuickUnlockModeAllowlist": ["all"],
+        "QuickUnlockModeWhitelist": ["all"],
+        "AllowedLocalAuthFactors": ["ALL"],
+        "KerberosAddAccountsAllowed": None,
+    },
     "Privacy": {
         "MetricsReportingEnabled": False,
         "UrlKeyedAnonymizedDataCollectionEnabled": False,
@@ -2232,17 +2305,20 @@ def _preset_menu():
         if idx is None:
             return
         _cls()
+        _cls_end()
         changes = PRESETS[options[idx]]
         if callable(changes):
             changes = changes()
             if not changes:
                 print("No real snapshot to compare against yet. Run `fetch` first.")
+                _cls_end()
                 try:
                     input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
                 except EOFError:
                     return
                 continue
         _do_preset(changes)
+        _cls_end()
         try:
             input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
         except EOFError:
@@ -2253,6 +2329,7 @@ def cmd_interactive(args=None):
         inj_on = INJECT_STATE_FILE.exists()
         extra = [
             "%s%s policies known%s" % (_DIM, len(_PN2F), _RESET),
+            "%sMade By: Aro_Moon / Nmsjayden%s" % (_DIM, _RESET),
         ]
         resignin_needed = False
         if inj_on:
@@ -2262,7 +2339,8 @@ def cmd_interactive(args=None):
                 inj_state = {}
             resignin_needed = _need_resignin(inj_state)
             if resignin_needed:
-                extra.append("%snot applied yet: Apply now%s" % (_YELLOW, _RESET))
+                extra.append('%sPolicies not synced, press "%s%sApply Now%s%s" to sync.%s'
+                             % (_YELLOW, _RESET, _BGREEN, _RESET, _YELLOW, _RESET))
 
         items = [
             ("Browse and edit policies", "browse", _BCYAN),
@@ -2283,10 +2361,12 @@ def cmd_interactive(args=None):
         if idx is None or items[idx][1] == "exit":
             _cls()
             print("Bye.")
+            _cls_end()
             break
 
         action = items[idx][1]
         _cls()
+        _cls_end()
         try:
             if action == "browse":
                 _browse()
@@ -2311,6 +2391,7 @@ def cmd_interactive(args=None):
                             shown = "unset" if val == "UNSET" else val
                             print("  %s%s = %s%s" % (_DIM, name, shown, _RESET))
                         print()
+                    _cls_end()
                     confirm = input("Replace with normal policy? [y/N]: ").strip().lower()
                     if confirm != "y":
                         print("Cancelled.")
@@ -2325,6 +2406,7 @@ def cmd_interactive(args=None):
         except SystemExit:
             pass  # a subcommand called sys.exit() on an error; stay in the menu
 
+        _cls_end()
         try:
             input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
         except EOFError:
