@@ -226,11 +226,10 @@ def _chrome_plat():
     return "Linux,CrOS,%s|%s,%s|%s" % (board, arch, hwid, version)
 
 PFR_TYPE    = 1   # string
-PFR_MID     = 2   # string (device serial from VPD)
-PFR_SIG = 3   # enum: 2 = EC_KEY
+PFR_SIG = 3   # enum: 2 = SHA256_RSA
 PFR_PKV = 4   # int32
-DMR_USER   = 5
-DMR_DEV = 4   # kept for reference
+DMR_USER   = 3
+DMR_REQ    = 3   # DevicePolicyRequest.requests[0]
 DMRESP_USER   = 5
 DPOL_FETCH    = 3
 
@@ -415,18 +414,16 @@ def _user_pol_files():
                 return p, k
     return None, None
 
-def _mk_pfr(policy_type, public_key_version=1, machine_id=None):
+def _mk_pfr(policy_type, public_key_version=1):
     body = _enc_field(PFR_TYPE, 2, policy_type.encode())
-    if machine_id:
-        body += _enc_field(PFR_MID, 2, machine_id.encode())
-    body += (_enc_field(PFR_SIG, 0, 2)      # EC_KEY
+    body += (_enc_field(PFR_SIG, 0, 2)      # SHA256_RSA
              + _enc_field(PFR_PKV, 0, public_key_version))
     return body
 
-def _mk_dm_req(policy_type, public_key_version=1, machine_id=None):
-    pfr = _mk_pfr(policy_type, public_key_version, machine_id)
-    dpr = _enc_field(1, 2, pfr)   # DevicePolicyRequest.request[0]
-    return _enc_field(DMR_USER, 2, dpr)
+def _mk_dm_req(policy_type, public_key_version=1):
+    pfr = _mk_pfr(policy_type, public_key_version)
+    dpr = _enc_field(DMR_REQ, 2, pfr)   # DevicePolicyRequest.requests[0]
+    return _enc_field(DMR_USER, 2, dpr)  # DeviceManagementRequest.policy_request
 
 
 class _Credentials:
@@ -496,9 +493,7 @@ def cmd_fetch(args):
         "request":    "policy",
     })
     url = "%s?%s" % (DM_ENDPOINT, params)
-    body = _mk_dm_req(
-        creds.policy_type, creds.public_key_version, machine_id
-    )
+    body = _mk_dm_req(creds.policy_type, creds.public_key_version)
 
     dm_auth = DM_TOKEN_PFX + creds.dm_token
     print("  machine_id:        %s" % (machine_id or "(not found)"))
