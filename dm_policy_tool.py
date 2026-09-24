@@ -539,8 +539,16 @@ def cmd_fetch(args):
         sys.exit(1)
     if not raw_response:
         print("  Server: no change (policy already current for this token/device).")
-        print("  Snapshotting live on-disk policy file: %s" % live)
         pfr_bytes = live.read_bytes()
+        if DM_KEY_BACKUP.exists():
+            live_pfr = _parse_raw(pfr_bytes)
+            if not _verify_pfr(live_pfr, DM_KEY_BACKUP.read_bytes()):
+                print("ERROR: the live on-disk policy doesn't verify against the "
+                      "saved real DM key, so it can't be trusted as a snapshot.\n"
+                      "It's likely mid-edit. Run `eject` (or `sign-out`) first, "
+                      "then `fetch` again.", file=sys.stderr)
+                sys.exit(1)
+        print("  Snapshotting live on-disk policy file: %s" % live)
     else:
         pfr_bytes = None
         outer = _parse_raw(raw_response)
@@ -849,6 +857,10 @@ def cmd_status(args):
                 print("Signed in: %s  (last fetch %s UTC)" % (user, dt.strftime("%Y-%m-%d %H:%M:%S")))
             else:
                 print("Signed in: %s" % user)
+        pf, kf = _user_pol_files()
+        if pf is not None and not _verify_live_pair(pf, kf):
+            print("%sWARNING: the live key/policy pair doesn't verify itself. "
+                  "Run `eject` to fix it.%s" % (_BYELLOW, _RESET))
     else:
         print("Not signed in (no live policy mount found)")
 
@@ -860,6 +872,42 @@ def cmd_status(args):
     snaps = (sorted(SNAPSHOTS_DIR.glob("*.bin"), key=lambda p: p.stat().st_mtime)
              if SNAPSHOTS_DIR.exists() else [])
     print("Saved snapshots: %d%s" % (len(snaps), (" (latest: %s)" % snaps[-1].name) if snaps else ""))
+
+
+def _atomic_write(path, data):
+    """Write data to path via a temp file + rename, so a mid-write restart or
+    sign-out can never leave a truncated/partial file behind."""
+    tmp = path.with_name(path.name + ".tmp-%d" % os.getpid())
+    tmp.write_bytes(data)
+    os.replace(str(tmp), str(path))
+
+
+def _verify_live_pair(policy_file, key_file):
+    """True if the current on-disk key/policy pair verify each other. False
+    (not an exception) for any read/parse/verify failure, including a pair
+    torn mid-write by a sign-out or restart."""
+    try:
+        pfr_raw = _parse_raw(policy_file.read_bytes())
+        return _verify_pfr(pfr_raw, key_file.read_bytes())
+    except Exception:
+        return False
+
+
+def _verify_pfr(pfr_raw, pub_der):
+    """True if this PolicyFetchResponse's policy_data_signature verifies
+    against the given DER-encoded public key. Never raises."""
+    try:
+        from cryptography.hazmat.primitives import serialization, hashes
+        from cryptography.hazmat.primitives.asymmetric import padding
+        pd_bytes = next((v for f, w, v in pfr_raw if f == 3 and w == 2), None)
+        sig = next((v for f, w, v in pfr_raw if f == 4 and w == 2), None)
+        if pd_bytes is None or sig is None:
+            return False
+        pub = serialization.load_der_public_key(pub_der)
+        pub.verify(sig, pd_bytes, padding.PKCS1v15(), hashes.SHA256())
+        return True
+    except Exception:
+        return False
 
 
 def _try_crypto():
@@ -1038,7 +1086,15 @@ def cmd_inject(args):
     )
 
     if not DM_KEY_BACKUP.exists():
-        DM_KEY_BACKUP.write_bytes(key_file.read_bytes())
+        live_key_bytes = key_file.read_bytes()
+        if _verify_pfr(pfr_raw, live_key_bytes):
+            DM_KEY_BACKUP.write_bytes(live_key_bytes)
+        else:
+            print("ERROR: the current on-disk key doesn't verify the current "
+                  "on-disk policy, so it can't be trusted as the real DM key.\n"
+                  "Run `fetch` once while nothing is injected, then try again.",
+                  file=sys.stderr)
+            sys.exit(1)
 
     prev_state = {}
     if INJECT_STATE_FILE.exists():
@@ -1075,8 +1131,8 @@ def cmd_inject(args):
         "chrome_pid_at_inject": _chrome_pid(),
     }
 
-    key_file.write_bytes(pub_der)       # swap the verification key
-    policy_file.write_bytes(new_pfr_bytes)  # write the re-signed policy
+    _atomic_write(policy_file, new_pfr_bytes)
+    _atomic_write(key_file, pub_der)
     INJECT_STATE_FILE.write_text(json.dumps(state, indent=2))
     SYNCED_STATE_FILE.write_text(json.dumps(
         {"hash": synced_hash, "pid": _chrome_pid()}))
@@ -1105,6 +1161,11 @@ def cmd_eject(args):
     if not policy_file.exists() or not key_file.exists():
         policy_file, key_file = _user_pol_files()
 
+    if policy_file is not None and not _verify_live_pair(policy_file, key_file):
+        print("WARNING: the current on-disk key/policy pair doesn't verify "
+              "itself (torn by an interrupted write, sign-out, or restart). "
+              "Restoring the real DM key now to fix that.", file=sys.stderr)
+
     if policy_file == None:
         print("No live policy mount right now. Waiting for you to sign in "
               "(up to 60s)...")
@@ -1124,29 +1185,36 @@ def cmd_eject(args):
               file=sys.stderr)
         sys.exit(1)
 
-    key_file.write_bytes(DM_KEY_BACKUP.read_bytes())
-    print("  Restored DM key: %s" % key_file)
+    dm_pub = DM_KEY_BACKUP.read_bytes()
 
     base_snap = state.get("base_snapshot", "")
-    if base_snap and Path(base_snap).exists():
-        policy_file.write_bytes(Path(base_snap).read_bytes())
-        print("  Restored policy: %s" % base_snap)
-    else:
-
+    restore_path = Path(base_snap) if base_snap and Path(base_snap).exists() else None
+    if restore_path is None:
         snaps = sorted(SNAPSHOTS_DIR.glob("*.bin"),
                        key=lambda p: p.stat().st_mtime)
         inject_mtime = INJECT_STATE_FILE.stat().st_mtime
         pre = [s for s in snaps if s.stat().st_mtime < inject_mtime]
         if pre:
-            policy_file.write_bytes(pre[-1].read_bytes())
-            print("  Restored policy: %s" % pre[-1])
+            restore_path = pre[-1]
         elif snaps:
-            print(f"  WARNING: all snapshots post-date the inject; using latest anyway.")
-            policy_file.write_bytes(snaps[-1].read_bytes())
-            print("  Restored policy: %s" % snaps[-1])
-        else:
-            print("  WARNING: no snapshots found; policy file NOT restored.")
-            print("  After sign-in Chrome will try to fetch fresh from the DM server.")
+            print("  WARNING: all snapshots post-date the inject; using latest anyway.")
+            restore_path = snaps[-1]
+
+    if restore_path is None:
+        print("  WARNING: no snapshots found; policy file NOT restored.")
+        print("  After sign-in Chrome will try to fetch fresh from the DM server.")
+    else:
+        restore_bytes = restore_path.read_bytes()
+        if not _verify_pfr(_parse_raw(restore_bytes), dm_pub):
+            print("ERROR: the saved DM key doesn't verify %s, so restoring "
+                  "them together would leave a broken pair.\n"
+                  "Run `fetch` once while signed in to re-verify, then eject "
+                  "again." % restore_path.name, file=sys.stderr)
+            sys.exit(1)
+        _atomic_write(key_file, dm_pub)
+        print("  Restored DM key: %s" % key_file)
+        _atomic_write(policy_file, restore_bytes)
+        print("  Restored policy: %s" % restore_path)
 
     INJECT_STATE_FILE.unlink()
     if SYNCED_STATE_FILE.exists():
@@ -1246,6 +1314,11 @@ def cmd_apply(args):
         print("ERROR: user policy files not found. Sign in first.", file=sys.stderr)
         sys.exit(1)
 
+    if not _verify_live_pair(policy_file, key_file):
+        print("ERROR: the on-disk key/policy pair doesn't verify itself. "
+              "Run `eject` first, then redo your edit.", file=sys.stderr)
+        sys.exit(1)
+
     account_id = _user_email()
     if not account_id:
         print("ERROR: could not determine the signed-in account.", file=sys.stderr)
@@ -1298,11 +1371,11 @@ def _do_preset(changes):
         print("Skipping (not in the current mapping): %s" % ', '.join(skipped))
     if not sets and not unsets:
         print("Nothing in this preset applies right now.")
-        return
+        return True
     cmd_inject(argparse.Namespace(
         profile=None, also_active=False, set=sets or None, unset=unsets or None,
         force=True, new_key=False))
-    _offer_so()
+    return _offer_so()
 
 
 def _try_apply():
@@ -1327,16 +1400,16 @@ def _try_apply():
 
 def _offer_so():
     if not INJECT_STATE_FILE.exists():
-        return
+        return True
     try:
         state = json.loads(INJECT_STATE_FILE.read_text())
     except Exception:
-        return
+        return True
     if not _need_resignin(state):
-        return
+        return True
     print()
     print("%sNot synced yet. Trying `apply`...%s" % (_BYELLOW, _RESET))
-    _try_apply()
+    return _try_apply()
 
 def _do_fetch():
     if INJECT_STATE_FILE.exists():
@@ -2317,12 +2390,13 @@ def _preset_menu():
                 except EOFError:
                     return
                 continue
-        _do_preset(changes)
+        already_paused = not _do_preset(changes)
         _cls_end()
-        try:
-            input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
-        except EOFError:
-            return
+        if not already_paused:
+            try:
+                input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+            except EOFError:
+                return
 
 def cmd_interactive(args=None):
     while True:
