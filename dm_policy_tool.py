@@ -1105,7 +1105,8 @@ def cmd_inject(args):
     )
 
     new_sig      = priv_key.sign(new_pd_bytes, pad.PKCS1v15(), hashes_m.SHA256())
-    new_pfr_bytes = _reencode(pfr_raw, {3: new_pd_bytes, 4: new_sig})
+    new_pfr_bytes = _reencode(pfr_raw, {3: new_pd_bytes, 4: new_sig,
+                                        5: None, 6: None, 7: None, 8: None, 9: None})
 
     pfr_check = _parse_raw(new_pfr_bytes)
     pd_check  = next((v for f,w,v in pfr_check if f==3 and w==2), None)
