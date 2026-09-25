@@ -1263,11 +1263,125 @@ def _pol_desc(account_id):
             + field_varint(3, 0))
 
 
+def _dbus_call(member, sig, args):
+    import socket
+    import struct
+
+    def enc_str(v):
+        raw = v.encode()
+        return struct.pack("<I", len(raw)) + raw + b"\0"
+
+    def build(serial, dest, path, iface, mem, body_sig, body):
+        fields = b""
+        for code, t, v in ((1, "o", path), (2, "s", iface), (3, "s", mem), (6, "s", dest)):
+            entry = bytes([code, 1]) + t.encode() + b"\0" + enc_str(v)
+            fields += b"\0" * (-len(fields) % 8) + entry
+        if body_sig:
+            entry = bytes([8, 1]) + b"g\0" + bytes([len(body_sig)]) + body_sig.encode() + b"\0"
+            fields += b"\0" * (-len(fields) % 8) + entry
+        head = struct.pack("<BBBBII", ord("l"), 1, 0, 1, len(body), serial)
+        head += struct.pack("<I", len(fields)) + fields
+        return head + b"\0" * (-len(head) % 8) + body
+
+    def marshal(body_sig, values):
+        out = b""
+        for a in values:
+            out += b"\0" * (-len(out) % 4)
+            if isinstance(a, bytes):
+                out += struct.pack("<I", len(a)) + a
+            else:
+                out += enc_str(a)
+        return out
+
+    def read_exact(sock, n):
+        buf = b""
+        while len(buf) < n:
+            chunk = sock.recv(n - len(buf))
+            if not chunk:
+                raise OSError("bus closed")
+            buf += chunk
+        return buf
+
+    def read_msg(sock):
+        head = read_exact(sock, 16)
+        body_len, serial, flen = struct.unpack("<III", head[4:16])
+        fields = read_exact(sock, flen)
+        read_exact(sock, -(16 + flen) % 8)
+        body = read_exact(sock, body_len)
+        info = {"type": head[1], "body": body}
+        pos = 0
+        while pos + 4 <= len(fields):
+            pos += -pos % 8
+            code, slen = fields[pos], fields[pos + 1]
+            vsig = fields[pos + 2:pos + 2 + slen].decode()
+            pos += 3 + slen
+            if vsig in ("s", "o"):
+                pos += -pos % 4
+                ln = struct.unpack_from("<I", fields, pos)[0]
+                info[code] = fields[pos + 4:pos + 4 + ln].decode()
+                pos += 5 + ln
+            elif vsig == "u":
+                pos += -pos % 4
+                info[code] = struct.unpack_from("<I", fields, pos)[0]
+                pos += 4
+            elif vsig == "g":
+                ln = fields[pos]
+                info[code] = fields[pos + 1:pos + 1 + ln].decode()
+                pos += 2 + ln
+            else:
+                break
+        return info
+
+    def call(sock, serial, dest, path, iface, mem, body_sig, values):
+        sock.sendall(build(serial, dest, path, iface, mem, body_sig, marshal(body_sig, values)))
+        while True:
+            msg = read_msg(sock)
+            if msg["type"] in (2, 3) and msg.get(5) == serial:
+                return msg
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.settimeout(30)
+    for path in ("/run/dbus/system_bus_socket", "/var/run/dbus/system_bus_socket"):
+        try:
+            sock.connect(path)
+            break
+        except OSError:
+            continue
+    else:
+        raise OSError("no system bus socket")
+    sock.sendall(b"\0AUTH EXTERNAL " + str(os.getuid()).encode().hex().encode() + b"\r\n")
+    if read_exact(sock, 3) != b"OK ":
+        raise OSError("dbus auth failed")
+    while sock.recv(1) != b"\n":
+        pass
+    sock.sendall(b"BEGIN\r\n")
+    call(sock, 1, "org.freedesktop.DBus", "/org/freedesktop/DBus",
+         "org.freedesktop.DBus", "Hello", "", [])
+    reply = call(sock, 2, "org.chromium.SessionManager", "/org/chromium/SessionManager",
+                 "org.chromium.SessionManagerInterface", member, sig, args)
+    sock.close()
+    return reply
+
+
 def _store_pol(descriptor_bytes, policy_bytes):
+    try:
+        reply = _dbus_call("StorePolicyEx", "ayay", [descriptor_bytes, policy_bytes])
+    except Exception:
+        reply = None
+    if reply is not None:
+        if reply["type"] == 2:
+            return True, None
+        body = reply["body"]
+        msg = body[4:4 + int.from_bytes(body[:4], "little")].decode(errors="replace") if len(body) > 4 else ""
+        return False, "Error: GDBus.Error:%s: %s" % (reply.get(4, "unknown"), msg)
+    return _store_pol_gdbus(descriptor_bytes, policy_bytes)
+
+
+def _store_pol_gdbus(descriptor_bytes, policy_bytes):
     import subprocess
 
     def literal(b):
-        return "[" + ", ".join(f"byte 0x{x:02x}" for x in b) + "]"
+        return "[byte " + ", ".join("0x%02x" % x for x in b) + "]"
 
     result = subprocess.run([
         "gdbus", "call", "--system",
