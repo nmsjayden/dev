@@ -23,7 +23,7 @@ sudo dev_install
 
 ```bash
 # curl, save and run (do not run directly from curl unless using args "curl -fsSL <url> | python -" )
-curl -fsSL -o /usr/local/bin/dm_policy_tool.py https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && chmod +x /usr/local/bin/dm_policy_tool && dm_policy_tool
+curl -fsSL -o /usr/local/bin/dm_policy_tool https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && chmod +x /usr/local/bin/dm_policy_tool && dm_policy_tool
 ```
 (can be run with as a command after putting it there)
 (No args opens the interactive menu.)
