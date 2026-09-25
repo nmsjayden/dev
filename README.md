@@ -23,38 +23,38 @@ sudo dev_install
 
 ```bash
 # curl, save and run (do not run directly from curl unless using args "curl -fsSL <url> | python -" )
-curl -fsSL -o /tmp/dm_policy_tool.py https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && python3 /tmp/dm_policy_tool.py
+curl -fsSL -o /usr/local/bin/dm_policy_tool.py https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && chmod +x /usr/local/bin/dm_policy_tool && dm_policy_tool
 ```
-
+(can be run with as a command after putting it there)
 (No args opens the interactive menu.)
 
 ## Common commands
 
 ```bash
-python3 dm_policy_tool.py status          # what’s active right now
-python3 dm_policy_tool.py fetch           # pull current policy from DM, snapshot it
-python3 dm_policy_tool.py dump            # decode latest snapshot
-python3 dm_policy_tool.py list            # search known policy names
-python3 dm_policy_tool.py list Foo        # filter by substring
-python3 dm_policy_tool.py get PolicyName  # value on the live blob
-python3 dm_policy_tool.py toggle PolicyName
-python3 dm_policy_tool.py unset PolicyName
+dm_policy_tool status          # what’s active right now
+dm_policy_tool fetch           # pull current policy from DM, snapshot it
+dm_policy_tool dump            # decode latest snapshot
+dm_policy_tool list            # search known policy names
+dm_policy_tool list Foo        # filter by substring
+dm_policy_tool get PolicyName  # value on the live blob
+dm_policy_tool toggle PolicyName
+dm_policy_tool unset PolicyName
 ```
 
 ### Inject
 
 ```bash
 # set one or more policies on disk (does not push to Chrome yet)
-python3 dm_policy_tool.py inject --set SomePolicy=true --set OtherPolicy=false
+dm_policy_tool inject --set SomePolicy=true --set OtherPolicy=false
 
 # push live without full sign-out (needs key already trusted once)
-python3 dm_policy_tool.py apply
+dm_policy_tool apply
 
 # or end the session so the next sign-in loads the new key/blob (to get a trusted key)
-python3 dm_policy_tool.py sign-out
+dm_policy_tool sign-out
 
 # undo inject
-python3 dm_policy_tool.py eject
+dm_policy_tool eject
 ```
 
 `inject` only writes the blob + verification key. Chrome picks it up after `apply` or a fresh sign-in.
@@ -62,10 +62,10 @@ python3 dm_policy_tool.py eject
 ### Local JSON overrides (managed/)
 
 ```bash
-python3 dm_policy_tool.py edit --name default --set PolicyName=true
-python3 dm_policy_tool.py local apply default
-python3 dm_policy_tool.py local list
-python3 dm_policy_tool.py local clear
+dm_policy_tool edit --name default --set PolicyName=true
+dm_policy_tool local apply default
+dm_policy_tool local list
+dm_policy_tool local clear
 ```
 
 Local managed JSON is merged by Chrome; inject is stronger and can override cloud-mandatory settings.
@@ -90,9 +90,9 @@ Under `/root/policy_editor_state/`:
 Policy name ↔ field number comes from Chromium’s `policies.yaml` (with the usual +2 offset for top-level ids).
 
 ```bash
-python3 dm_policy_tool.py refresh-mapping
-python3 dm_policy_tool.py verify-mapping --export /path/to/chrome-policy-export.json
-python3 dm_policy_tool.py fix-mapping FIELDNAME CorrectPolicyName
+dm_policy_tool refresh-mapping
+dm_policy_tool verify-mapping --export /path/to/chrome-policy-export.json
+dm_policy_tool fix-mapping FIELDNAME CorrectPolicyName
 ```
 
 Policies with yaml id > 1040 live in chunked sub-messages and are not supported for inject.
