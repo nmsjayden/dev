@@ -172,7 +172,32 @@ def _menu(title, options, extra_lines=None, subtitle=None):
                 sel = idx
 
 
-STATE_DIR       = Path('/root/policy_editor_state')
+def _pick_state_dir():
+    env = os.environ.get("DM_POLICY_STATE")
+    if env:
+        return Path(env)
+    cands = [Path("/root/policy_editor_state"), Path("/usr/local/policy_editor_state"),
+             Path("/tmp/policy_editor_state")]
+    for c in cands:
+        if c.exists() and os.access(str(c), os.W_OK):
+            return c
+    for c in cands:
+        try:
+            c.mkdir(parents=True, exist_ok=True)
+            return c
+        except OSError:
+            continue
+    return cands[0]
+
+
+def _mkdir(p):
+    try:
+        p.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        pass
+
+
+STATE_DIR       = _pick_state_dir()
 PROFILES_DIR    = STATE_DIR.joinpath("profiles")
 SNAPSHOTS_DIR   = STATE_DIR.joinpath("managed-user")
 MANAGED_DIR     = Path('/etc/opt/chrome/policies/managed')
@@ -711,7 +736,7 @@ def _save_profile(name, policies):
 
 def cmd_local_list(args):
     print("=== Active local-override files in managed/ ===")
-    MANAGED_DIR.mkdir(parents=True, exist_ok=True)
+    _mkdir(MANAGED_DIR)
     files = list(MANAGED_DIR.glob("*.json"))
     if not files:
         print("  (none, Chrome is applying server policy only)")
@@ -728,7 +753,7 @@ def cmd_local_apply(args):
     if not profile:
         print("No profile '%s' found. Use profiles/edit to create one." % args.name, file=sys.stderr)
         sys.exit(1)
-    MANAGED_DIR.mkdir(parents=True, exist_ok=True)
+    _mkdir(MANAGED_DIR)
     dest = MANAGED_DIR / ("%s.json" % args.name)
     dest.write_text(json.dumps(profile, indent=2, sort_keys=True))
     print("Applied profile '%s' -> %s" % (args.name, dest))
@@ -743,7 +768,7 @@ def cmd_local_remove(args):
         print("Not found: %s" % dest)
 
 def cmd_local_clear(args):
-    MANAGED_DIR.mkdir(parents=True, exist_ok=True)
+    _mkdir(MANAGED_DIR)
     removed = 0
     for f in MANAGED_DIR.glob("*.json"):
         f.unlink()
@@ -859,7 +884,7 @@ def cmd_status(args):
     else:
         print("Not signed in (no live policy mount found)")
 
-    MANAGED_DIR.mkdir(parents=True, exist_ok=True)
+    _mkdir(MANAGED_DIR)
     local_files = list(MANAGED_DIR.glob("*.json"))
     if local_files:
         print("Local override files: %d active in %s" % (len(local_files), MANAGED_DIR))
@@ -2766,4 +2791,10 @@ def main():
     elif args.cmd == "diff":     cmd_diff(args)
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except BrokenPipeError:
+        sys.exit(0)
+    except OSError as e:
+        print("ERROR: %s" % e, file=sys.stderr)
+        sys.exit(1)
