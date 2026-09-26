@@ -203,11 +203,74 @@ SNAPSHOTS_DIR   = STATE_DIR.joinpath("managed-user")
 MANAGED_DIR     = Path('/etc/opt/chrome/policies/managed')
 RECOMMENDED_DIR = Path('/etc/opt/chrome/policies/recommended')
 
-def _live_pol():
+_SELECTED_USER = None
+_NOTED_USERS = False
+
+
+def _read_dbus_str(body, pos):
+    pos += -pos % 4
+    ln = int.from_bytes(body[pos:pos + 4], "little")
+    return body[pos + 4:pos + 4 + ln].decode(errors="replace"), pos + 5 + ln
+
+
+def _signed_in_users():
+    try:
+        body = _dbus_call("RetrieveActiveSessions", "", [])["body"]
+        end = 8 + int.from_bytes(body[:4], "little")
+        pos, out = 8, []
+        while pos < end:
+            pos += -pos % 8
+            email, pos = _read_dbus_str(body, pos)
+            sanitized, pos = _read_dbus_str(body, pos)
+            out.append((email, sanitized))
+        return out
+    except Exception:
+        return []
+
+
+def _primary_user():
+    try:
+        body = _dbus_call("RetrievePrimarySession", "", [])["body"]
+        email, pos = _read_dbus_str(body, 0)
+        sanitized, pos = _read_dbus_str(body, pos)
+        return email, sanitized
+    except Exception:
+        return None, None
+
+
+def _user_dir():
+    global _NOTED_USERS
     base = Path("/run/daemon-store/session_manager")
-    for p in base.glob("*/policy/policy"):
-        return p
+    users = [(e, h) for e, h in _signed_in_users() if (base / h / "policy" / "policy").exists()]
+    want = _SELECTED_USER or os.environ.get("DM_POLICY_USER")
+    if want:
+        for e, h in users:
+            if e.lower() == want.lower() or h.startswith(want.lower()):
+                return base / h / "policy"
+        print("ERROR: %s is not signed in. Signed in: %s" % (
+            want, ", ".join(e for e, h in users) or "nobody"), file=sys.stderr)
+        sys.exit(1)
+    if users:
+        primary = _primary_user()[1]
+        chosen = next((u for u in users if u[1] == primary), users[0])
+        if len(users) > 1 and not _NOTED_USERS:
+            _NOTED_USERS = True
+            print("Several users are signed in. Using %s (also: %s). "
+                  "Pick another with --user EMAIL." % (
+                      chosen[0], ", ".join(e for e, h in users if e != chosen[0])),
+                  file=sys.stderr)
+        return base / chosen[1] / "policy"
+    if base.exists():
+        for d in sorted(base.iterdir()):
+            if (d / "policy" / "policy").exists():
+                return d / "policy"
     return None
+
+
+def _live_pol():
+    d = _user_dir()
+    return d / "policy" if d is not None else None
+
 DM_ENDPOINT  = 'https://m.google.com/devicemanagement/data/api'
 DM_AUTH_HDR  = 'Authorization'
 DM_TOKEN_PFX = 'GoogleDMToken token='
@@ -282,6 +345,7 @@ POLICY_OVERRIDE_FILE = SNAPSHOTS_DIR / "chrome_policy_id_overrides.json"
 CHUNKED_MAP_FILE = SNAPSHOTS_DIR / "chrome_policy_chunked_map.json"
 # legacy filename still written empty for older tooling
 CHUNKED_POLICIES_FILE = SNAPSHOTS_DIR / "chrome_policy_chunked_names.json"
+MAPPING_META_FILE = SNAPSHOTS_DIR / "mapping_meta.json"
 
 DEFAULT_OVR = {}
 
@@ -333,6 +397,35 @@ def _load_pn2f():
 _PN2F = _load_pn2f()
 # names that are chunked (for list display)
 _CHUNKED = {n for n, (c, _) in _PN2F.items() if c > 0}
+
+
+def _reload_mapping():
+    global _PN2F, _CHUNKED
+    _PN2F = _load_pn2f()
+    _CHUNKED = {n for n, (c, _) in _PN2F.items() if c > 0}
+
+
+_CHROME_VERSION = None
+
+
+def _chrome_version():
+    global _CHROME_VERSION
+    if _CHROME_VERSION is None:
+        _CHROME_VERSION = _chrome_agent().rsplit(" ", 1)[-1]
+    return _CHROME_VERSION
+
+
+def _mapping_note():
+    if not _PN2F:
+        return "No policy mapping yet."
+    try:
+        saved = json.loads(MAPPING_META_FILE.read_text()).get("chrome", "")
+    except Exception:
+        return None
+    now = _chrome_version()
+    if saved and saved.split(".")[0] != now.split(".")[0]:
+        return "Chrome updated (%s to %s). Refresh the policy mapping." % (saved, now)
+    return None
 
 def _ptype(value):
     if type(value) is bool:
@@ -421,14 +514,9 @@ def _reencode(fields, overrides):
     return out
 
 def _user_pol_files():
-    ds = Path("/run/daemon-store/session_manager")
-    if ds.exists():
-        for d in sorted(ds.iterdir()):
-            if not d.is_dir(): continue
-            pdir = d / "policy"
-            p, k = pdir / "policy", pdir / "key"
-            if p.exists() and k.exists():
-                return p, k
+    d = _user_dir()
+    if d is not None and (d / "key").exists():
+        return d / "policy", d / "key"
     hr = Path("/home/root")
     if hr.exists():
         for d in sorted(hr.iterdir()):
@@ -583,6 +671,10 @@ def cmd_fetch(args):
 
         if pfr_bytes == None:
             pfr_bytes = raw_response
+        live_key = _user_pol_files()[1]
+        if live_key is not None and _verify_pfr(_parse_raw(pfr_bytes), live_key.read_bytes()):
+            SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+            DM_KEY_BACKUP.write_bytes(live_key.read_bytes())
 
         try:
             _, pd = _get_field(_parse_raw(pfr_bytes), 3)
@@ -757,6 +849,7 @@ def cmd_local_apply(args):
     dest = MANAGED_DIR / ("%s.json" % args.name)
     dest.write_text(json.dumps(profile, indent=2, sort_keys=True))
     print("Applied profile '%s' -> %s" % (args.name, dest))
+    print("This applies to ALL users on this device, not just the current one.")
     print("Reload chrome://policy (or wait for Chrome's auto-refresh) to activate.")
 
 def cmd_local_remove(args):
@@ -773,7 +866,7 @@ def cmd_local_clear(args):
     for f in MANAGED_DIR.glob("*.json"):
         f.unlink()
         removed += 1
-    print("Cleared %d file(s) from %s" % (removed, MANAGED_DIR))
+    print("Cleared %d file(s) from %s (these applied to ALL users)" % (removed, MANAGED_DIR))
     print("Chrome will now apply server policy only on next reload.")
 
 def cmd_profiles(args):
@@ -892,6 +985,9 @@ def cmd_status(args):
     snaps = (sorted(SNAPSHOTS_DIR.glob("*.bin"), key=lambda p: p.stat().st_mtime)
              if SNAPSHOTS_DIR.exists() else [])
     print("Saved snapshots: %d%s" % (len(snaps), (" (latest: %s)" % snaps[-1].name) if snaps else ""))
+    note = _mapping_note()
+    if note:
+        print("%s%s%s" % (_YELLOW, note, _RESET))
 
 
 def _atomic_write(path, data):
@@ -987,6 +1083,7 @@ def cmd_inject(args):
               "Sign in as the managed user first.",
               file=sys.stderr)
         sys.exit(1)
+    print("  user: %s" % (_user_email() or "?"))
 
     overrides_json = {}
 
@@ -997,7 +1094,7 @@ def cmd_inject(args):
             sys.exit(1)
         overrides_json.update(prof)
 
-    if not args.profile or args.also_active:
+    if args.also_active:
         if MANAGED_DIR.exists():
             for f in sorted(MANAGED_DIR.glob("*.json")):
                 try:
@@ -1600,6 +1697,12 @@ def cmd_refresh_mapping(args):
     POLICY_ID_MAP_FILE.write_text(json.dumps(mapping, indent=0))
     CHUNKED_MAP_FILE.write_text(json.dumps(chunked_map, indent=0, sort_keys=True))
     CHUNKED_POLICIES_FILE.write_text(json.dumps(sorted(chunked_map.keys()), indent=0))
+    MAPPING_META_FILE.write_text(json.dumps(
+        {"chrome": _chrome_version(), "saved": time.strftime("%Y-%m-%dT%H:%M:%S")}))
+    if mapping.get(3) != "HomepageLocation":
+        print("WARNING: field numbering doesn't match what this tool expects "
+              "(HomepageLocation should be field 3). Chrome may have changed "
+              "the layout; check for a tool update before injecting.", file=sys.stderr)
     print("Saved %d top-level + %d chunked mappings" % (len(mapping), len(chunked_map)))
     print("Restart tool (or re-run) to pick up.")
 
@@ -2534,12 +2637,21 @@ def _preset_menu():
                 return
 
 def cmd_interactive(args=None):
+    if not _PN2F:
+        try:
+            cmd_refresh_mapping(argparse.Namespace())
+            _reload_mapping()
+        except (SystemExit, Exception):
+            pass
     while True:
         inj_on = INJECT_STATE_FILE.exists()
         extra = [
             "%s%s policies known%s" % (_DIM, len(_PN2F), _RESET),
             "%sMade By: Aro_Moon / Nmsjayden%s" % (_DIM, _RESET),
         ]
+        note = _mapping_note()
+        if note:
+            extra.append("%s%s%s" % (_YELLOW, note, _RESET))
         resignin_needed = False
         if inj_on:
             try:
@@ -2662,6 +2774,8 @@ def main():
     _env_check()
     ap = argparse.ArgumentParser(
         description="DM policy fetch, inspect, and local-override tool")
+    ap.add_argument("--user", metavar="EMAIL",
+                    help="signed-in user to edit (default: the primary user)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
     p_fetch = sub.add_parser("fetch", help="Fetch fresh policy from DM server")
@@ -2763,6 +2877,8 @@ def main():
         sys.exit(1)
     argv = sys.argv[1:] if sys.argv[1:] else ["interactive"]
     args = ap.parse_args(argv)
+    global _SELECTED_USER
+    _SELECTED_USER = args.user
 
     if   args.cmd == "fetch":    cmd_fetch(args)
     elif args.cmd == "dump":     cmd_dump(args)
