@@ -80,7 +80,7 @@ Local managed JSON is merged by Chrome; inject is stronger and can override clou
 
 ## State
 
-Under `/root/policy_editor_state/`:
+Under `/root/policy_editor_state/` (or `/usr/local/policy_editor_state/` if `/root` is read-only; override with `DM_POLICY_STATE`):
 
 - `managed-user/` — snapshots, inject key, inject state
 - `profiles/` — saved local-override profiles
