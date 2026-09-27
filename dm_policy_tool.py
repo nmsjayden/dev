@@ -1649,18 +1649,11 @@ def _do_fetch():
     cmd_fetch(argparse.Namespace())
 
 
-def cmd_refresh_mapping(args):
-    import urllib.request
-    import base64
+MAPPING_FALLBACK_URL = "https://raw.githubusercontent.com/nmsjayden/dev/main/policy_mapping_fallback.json"
+
+
+def _parse_policies_yaml(text):
     import re as _re
-
-    url = ("https://chromium.googlesource.com/chromium/src/+/refs/heads/main/"
-           "components/policy/resources/templates/policies.yaml?format=TEXT")
-    print("Fetching %s ..." % url)
-    with urllib.request.urlopen(url, timeout=20) as resp:
-        raw = base64.b64decode(resp.read())
-    text = raw.decode()
-
     mapping = {}      # top-level: field_num -> name
     chunked_map = {}  # name -> {"chunk": N, "field": F}
     in_policies = False
@@ -1688,10 +1681,47 @@ def cmd_refresh_mapping(args):
                     mapping[field] = name
                 else:
                     chunked_map[name] = {"chunk": chunk, "field": field}
+    return mapping, chunked_map
+
+
+def cmd_refresh_mapping(args):
+    import urllib.request
+    import base64
+
+    url = ("https://chromium.googlesource.com/chromium/src/+/refs/heads/main/"
+           "components/policy/resources/templates/policies.yaml?format=TEXT")
+    mapping, chunked_map = {}, {}
+    print("Fetching %s ..." % url)
+    try:
+        with urllib.request.urlopen(url, timeout=20) as resp:
+            raw = base64.b64decode(resp.read())
+        mapping, chunked_map = _parse_policies_yaml(raw.decode())
+    except Exception as e:
+        print("  failed: %s" % e, file=sys.stderr)
+
+    if len(mapping) < 500:
+        print("Falling back to %s ..." % MAPPING_FALLBACK_URL)
+        try:
+            with urllib.request.urlopen(MAPPING_FALLBACK_URL, timeout=20) as resp:
+                data = json.loads(resp.read())
+            mapping = {int(k): v for k, v in data["mapping"].items()}
+            chunked_map = data["chunked_map"]
+            print("  using fallback saved %s (Chrome %s)" % (data.get("saved", "?"), data.get("chrome", "?")))
+        except Exception as e:
+            print("  fallback failed too: %s" % e, file=sys.stderr)
 
     if len(mapping) < 500:
         print("ERROR: only parsed %d top-level entries." % len(mapping), file=sys.stderr)
         sys.exit(1)
+
+    if getattr(args, "save_fallback", None):
+        Path(args.save_fallback).write_text(json.dumps({
+            "chrome": _chrome_version(),
+            "saved": time.strftime("%Y-%m-%dT%H:%M:%S"),
+            "mapping": mapping,
+            "chunked_map": chunked_map,
+        }, indent=0, sort_keys=True))
+        print("Wrote fallback copy: %s" % args.save_fallback)
 
     SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
     POLICY_ID_MAP_FILE.write_text(json.dumps(mapping, indent=0))
@@ -2849,8 +2879,10 @@ def main():
                              help="Revert a policy field to unset (Chrome's built-in default)")
     p_unset.add_argument("name")
 
-    sub.add_parser("refresh-mapping",
+    p_refresh = sub.add_parser("refresh-mapping",
                    help="Re-download the policy name<->field-number map from Chromium source")
+    p_refresh.add_argument("--save-fallback", metavar="PATH",
+                           help="Also write a copy in the fallback JSON format, to push to GitHub for offline users")
 
     p_verify = sub.add_parser("verify-mapping",
                               help="Check the name<->field map against a chrome://policy export (or naming heuristics if none given)")
