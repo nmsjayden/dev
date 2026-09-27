@@ -1,0 +1,2685 @@
+{
+"chrome": "152.0.7977.132",
+"chunked_map": {
+"AIModeSettings": {
+"chunk": 1,
+"field": 327
+},
+"AccessibilityPerformanceFilteringAllowed": {
+"chunk": 1,
+"field": 86
+},
+"AdHocCodeSigningForPWAsEnabled": {
+"chunk": 1,
+"field": 252
+},
+"AdminInstalledChromeAppsForceAllowed": {
+"chunk": 1,
+"field": 446
+},
+"AllowBackForwardCacheForCacheControlNoStorePageEnabled": {
+"chunk": 1,
+"field": 74
+},
+"AllowExcludeDisplayInMirrorMode": {
+"chunk": 1,
+"field": 259
+},
+"AllowSocketPoolSizeRandomizationForProxies": {
+"chunk": 1,
+"field": 407
+},
+"AllowedDomainsForAppsList": {
+"chunk": 1,
+"field": 172
+},
+"AllowedInputMethodsForceEnabled": {
+"chunk": 1,
+"field": 283
+},
+"AllowedLocalAuthFactors": {
+"chunk": 1,
+"field": 365
+},
+"AlwaysOnVpnPreConnectUrlAllowlist": {
+"chunk": 1,
+"field": 150
+},
+"AndroidEntraSsoEnabled": {
+"chunk": 1,
+"field": 398
+},
+"AppLaunchAutomation": {
+"chunk": 1,
+"field": 54
+},
+"AppStoreRatingEnabled": {
+"chunk": 1,
+"field": 12
+},
+"ApplicationBoundEncryptionEnabled": {
+"chunk": 1,
+"field": 206
+},
+"ArcOpenLinksInBrowserByDefault": {
+"chunk": 1,
+"field": 261
+},
+"ArcVmDataMigrationStrategy": {
+"chunk": 1,
+"field": 85
+},
+"AutoSignOutEnabled": {
+"chunk": 1,
+"field": 349
+},
+"AutofillPredictionSettings": {
+"chunk": 1,
+"field": 260
+},
+"AutofillSettings": {
+"chunk": 1,
+"field": 419
+},
+"AutomatedPasswordChangeSettings": {
+"chunk": 1,
+"field": 336
+},
+"AutomaticDownloadsAllowedForUrls": {
+"chunk": 1,
+"field": 423
+},
+"AutomaticDownloadsBlockedForUrls": {
+"chunk": 1,
+"field": 424
+},
+"AutomaticFullscreenAllowedForUrls": {
+"chunk": 1,
+"field": 185
+},
+"AutomaticFullscreenBlockedForUrls": {
+"chunk": 1,
+"field": 186
+},
+"BackForwardCacheForWebSocketsAllowed": {
+"chunk": 1,
+"field": 432
+},
+"BackgroundTabFreezingEnabled": {
+"chunk": 1,
+"field": 444
+},
+"BeforeunloadEventCancelByPreventDefaultEnabled": {
+"chunk": 1,
+"field": 71
+},
+"BlockTruncatedCookies": {
+"chunk": 1,
+"field": 102
+},
+"BoundSessionCredentialsEnabled": {
+"chunk": 1,
+"field": 204
+},
+"BrowserContextAwareAccessSignalsAllowlist": {
+"chunk": 1,
+"field": 65
+},
+"BruschettaInstallerConfiguration": {
+"chunk": 1,
+"field": 96
+},
+"BuiltInAIAPIsEnabled": {
+"chunk": 1,
+"field": 317
+},
+"CACertificates": {
+"chunk": 1,
+"field": 151
+},
+"CACertificatesWithConstraints": {
+"chunk": 1,
+"field": 189
+},
+"CADistrustedCertificates": {
+"chunk": 1,
+"field": 152
+},
+"CAHintCertificates": {
+"chunk": 1,
+"field": 153
+},
+"CAPlatformIntegrationEnabled": {
+"chunk": 1,
+"field": 156
+},
+"CSSCustomStateDeprecatedSyntaxEnabled": {
+"chunk": 1,
+"field": 220
+},
+"CacheEncryptionEnabled": {
+"chunk": 1,
+"field": 356
+},
+"CameraSaveLocation": {
+"chunk": 1,
+"field": 373
+},
+"ChromeAppsWebViewPermissiveBehaviorAllowed": {
+"chunk": 1,
+"field": 33
+},
+"ChromeDataRegionSetting": {
+"chunk": 1,
+"field": 213
+},
+"ChromeForTestingAllowed": {
+"chunk": 1,
+"field": 173
+},
+"ChromeSuggestionsSettings": {
+"chunk": 1,
+"field": 415
+},
+"ClassManagementCaptionsEnabled": {
+"chunk": 1,
+"field": 299
+},
+"ClassManagementClassroomIntegrationEnabled": {
+"chunk": 1,
+"field": 300
+},
+"ClassManagementEnabled": {
+"chunk": 1,
+"field": 267
+},
+"ClassManagementNetworkRestrictionEnabled": {
+"chunk": 1,
+"field": 301
+},
+"ClassManagementViewScreenEnabled": {
+"chunk": 1,
+"field": 303
+},
+"ClearWindowNameForNewBrowsingContextGroup": {
+"chunk": 1,
+"field": 321
+},
+"CloudAPAuthEnabled": {
+"chunk": 1,
+"field": 3
+},
+"ColorCorrectionEnabled": {
+"chunk": 1,
+"field": 80
+},
+"CompressionDictionaryTransportEnabled": {
+"chunk": 1,
+"field": 104
+},
+"ContentTransferEnablementStatus": {
+"chunk": 1,
+"field": 254
+},
+"ContextMenuPhotoSharingSettings": {
+"chunk": 1,
+"field": 138
+},
+"ContextualGoogleIntegrationsConfiguration": {
+"chunk": 1,
+"field": 215
+},
+"ContextualGoogleIntegrationsEnabled": {
+"chunk": 1,
+"field": 214
+},
+"ControlledFrameAllowedForUrls": {
+"chunk": 1,
+"field": 289
+},
+"ControlledFrameBlockedForUrls": {
+"chunk": 1,
+"field": 290
+},
+"CpuPerformanceTierOverride": {
+"chunk": 1,
+"field": 402
+},
+"CreatePasskeysInICloudKeychain": {
+"chunk": 1,
+"field": 110
+},
+"CreateThemesSettings": {
+"chunk": 1,
+"field": 148
+},
+"CredentialProviderPromoEnabled": {
+"chunk": 1,
+"field": 46
+},
+"DataControlsRules": {
+"chunk": 1,
+"field": 121
+},
+"DataURLWhitespacePreservationEnabled": {
+"chunk": 1,
+"field": 258
+},
+"DataUrlInSvgUseEnabled": {
+"chunk": 1,
+"field": 69
+},
+"DataUrlInWebWorkerOpaqueOriginEnabled": {
+"chunk": 1,
+"field": 404
+},
+"DefaultAutomaticDownloadsSetting": {
+"chunk": 1,
+"field": 422
+},
+"DefaultControlledFrameSetting": {
+"chunk": 1,
+"field": 288
+},
+"DefaultDeviceAttributesSetting": {
+"chunk": 1,
+"field": 337
+},
+"DefaultDirectSocketsSetting": {
+"chunk": 1,
+"field": 190
+},
+"DefaultIdleDetectionSetting": {
+"chunk": 1,
+"field": 367
+},
+"DefaultJavaScriptOptimizerSetting": {
+"chunk": 1,
+"field": 237
+},
+"DefaultSmartCardConnectSetting": {
+"chunk": 1,
+"field": 315
+},
+"DefaultSubAppsWithoutPromptsSetting": {
+"chunk": 1,
+"field": 408
+},
+"DefaultThirdPartyStoragePartitioningSetting": {
+"chunk": 1,
+"field": 50
+},
+"DefaultWebPrintingSetting": {
+"chunk": 1,
+"field": 179
+},
+"DefaultWindowManagementSetting": {
+"chunk": 1,
+"field": 27
+},
+"DeleteKeyModifier": {
+"chunk": 1,
+"field": 164
+},
+"DeletingUndecryptablePasswordsEnabled": {
+"chunk": 1,
+"field": 245
+},
+"DeskAPIDeskSaveAndShareEnabled": {
+"chunk": 1,
+"field": 143
+},
+"DevToolsGenAiSettings": {
+"chunk": 1,
+"field": 188
+},
+"DevToolsGoogleDeveloperProgramProfileAvailability": {
+"chunk": 1,
+"field": 351
+},
+"DeveloperToolsAvailabilityAllowlist": {
+"chunk": 1,
+"field": 359
+},
+"DeveloperToolsAvailabilityBlocklist": {
+"chunk": 1,
+"field": 360
+},
+"DeviceActivityHeartbeatCollectionRateMs": {
+"chunk": 1,
+"field": 36
+},
+"DeviceActivityHeartbeatEnabled": {
+"chunk": 1,
+"field": 35
+},
+"DeviceAllowEnterpriseRemoteAccessConnections": {
+"chunk": 1,
+"field": 228
+},
+"DeviceAttributesBlockedForOrigins": {
+"chunk": 1,
+"field": 338
+},
+"DeviceAuthenticationFlowAutoReloadInterval": {
+"chunk": 1,
+"field": 207
+},
+"DeviceAuthenticationURLAllowlist": {
+"chunk": 1,
+"field": 93
+},
+"DeviceAuthenticationURLBlocklist": {
+"chunk": 1,
+"field": 92
+},
+"DeviceBluetoothJustWorksPairingEnabled": {
+"chunk": 1,
+"field": 333
+},
+"DeviceChargingSoundsEnabled": {
+"chunk": 1,
+"field": 83
+},
+"DeviceDlcPredownloadList": {
+"chunk": 1,
+"field": 120
+},
+"DeviceEphemeralNetworkPoliciesEnabled": {
+"chunk": 1,
+"field": 122
+},
+"DeviceExtendedAutoUpdateEnabled": {
+"chunk": 1,
+"field": 155
+},
+"DeviceExtendedFkeysModifier": {
+"chunk": 1,
+"field": 126
+},
+"DeviceExtensionsSystemLogEnabled": {
+"chunk": 1,
+"field": 212
+},
+"DeviceFlexArcPreloadEnabled": {
+"chunk": 1,
+"field": 282
+},
+"DeviceFlexHwDataForProductImprovementEnabled": {
+"chunk": 1,
+"field": 135
+},
+"DeviceHardwareVideoDecodingEnabled": {
+"chunk": 1,
+"field": 145
+},
+"DeviceHindiInscriptLayoutEnabled": {
+"chunk": 1,
+"field": 14
+},
+"DeviceLoginScreenExtensionManifestV2Availability": {
+"chunk": 1,
+"field": 15
+},
+"DeviceLoginScreenFaceGazeEnabled": {
+"chunk": 1,
+"field": 312
+},
+"DeviceLoginScreenGeolocationAccessLevel": {
+"chunk": 1,
+"field": 56
+},
+"DeviceLoginScreenPreferSlowCiphers": {
+"chunk": 1,
+"field": 375
+},
+"DeviceLoginScreenPreferSlowKexAlgorithms": {
+"chunk": 1,
+"field": 374
+},
+"DeviceLoginScreenSecurityKeyPermitAttestation": {
+"chunk": 1,
+"field": 345
+},
+"DeviceLoginScreenTouchVirtualKeyboardEnabled": {
+"chunk": 1,
+"field": 154
+},
+"DeviceLoginScreenWebHidAllowDevicesForUrls": {
+"chunk": 1,
+"field": 75
+},
+"DeviceLowBatterySoundEnabled": {
+"chunk": 1,
+"field": 84
+},
+"DeviceMaxUserProfiles": {
+"chunk": 1,
+"field": 447
+},
+"DeviceNativeClientForceAllowed": {
+"chunk": 1,
+"field": 274
+},
+"DeviceOnlinePasswordMismatchBehavior": {
+"chunk": 1,
+"field": 430
+},
+"DeviceOsMigrationTargetDate": {
+"chunk": 1,
+"field": 441
+},
+"DevicePostQuantumKeyAgreementEnabled": {
+"chunk": 1,
+"field": 236
+},
+"DevicePowerBatteryChargingOptimization": {
+"chunk": 1,
+"field": 279
+},
+"DeviceReportNetworkEvents": {
+"chunk": 1,
+"field": 57
+},
+"DeviceReportRuntimeCounters": {
+"chunk": 1,
+"field": 94
+},
+"DeviceReportRuntimeCountersCheckingRateMs": {
+"chunk": 1,
+"field": 95
+},
+"DeviceRestrictionSchedule": {
+"chunk": 1,
+"field": 250
+},
+"DeviceScreensaverLoginScreenEnabled": {
+"chunk": 1,
+"field": 23
+},
+"DeviceScreensaverLoginScreenIdleTimeoutSeconds": {
+"chunk": 1,
+"field": 24
+},
+"DeviceScreensaverLoginScreenImageDisplayIntervalSeconds": {
+"chunk": 1,
+"field": 25
+},
+"DeviceScreensaverLoginScreenImages": {
+"chunk": 1,
+"field": 26
+},
+"DeviceSwitchFunctionKeysBehaviorEnabled": {
+"chunk": 1,
+"field": 119
+},
+"DeviceSystemAecEnabled": {
+"chunk": 1,
+"field": 41
+},
+"DeviceUserInitiatedFirmwareUpdatesEnabled": {
+"chunk": 1,
+"field": 316
+},
+"DeviceUserInitiatedFlexSystemFirmwareUpdatesEnabled": {
+"chunk": 1,
+"field": 335
+},
+"DeviceWeeklyScheduledResuspendDelayMs": {
+"chunk": 1,
+"field": 421
+},
+"DeviceWeeklyScheduledSuspend": {
+"chunk": 1,
+"field": 169
+},
+"DirectSocketsAllowedForUrls": {
+"chunk": 1,
+"field": 191
+},
+"DirectSocketsBlockedForUrls": {
+"chunk": 1,
+"field": 192
+},
+"DnsOverHttpsExcludedDomains": {
+"chunk": 1,
+"field": 242
+},
+"DnsOverHttpsIncludedDomains": {
+"chunk": 1,
+"field": 243
+},
+"DocumentScanAPITrustedExtensions": {
+"chunk": 1,
+"field": 182
+},
+"DomainReliabilityAllowed": {
+"chunk": 1,
+"field": 18
+},
+"DownloadManagerSaveToDriveSettings": {
+"chunk": 1,
+"field": 184
+},
+"DriveFileSyncAvailable": {
+"chunk": 1,
+"field": 118
+},
+"DynamicCodeSettings": {
+"chunk": 1,
+"field": 225
+},
+"EmojiPickerGifSupportEnabled": {
+"chunk": 1,
+"field": 82
+},
+"EnableProxyOverrideRulesForAllUsers": {
+"chunk": 1,
+"field": 366
+},
+"EnableUnsafeSwiftShader": {
+"chunk": 1,
+"field": 330
+},
+"EnforceLocalAnchorConstraintsEnabled": {
+"chunk": 1,
+"field": 39
+},
+"EnterpriseBadgingTemporarySetting": {
+"chunk": 1,
+"field": 210
+},
+"EnterpriseCustomLabel": {
+"chunk": 1,
+"field": 198
+},
+"EnterpriseCustomLabelForBrowser": {
+"chunk": 1,
+"field": 314
+},
+"EnterpriseLogoUrl": {
+"chunk": 1,
+"field": 197
+},
+"EnterpriseLogoUrlForBrowser": {
+"chunk": 1,
+"field": 313
+},
+"EnterpriseProfileBadgeToolbarSettings": {
+"chunk": 1,
+"field": 262
+},
+"EnterprisePublishedSkills": {
+"chunk": 1,
+"field": 436
+},
+"EnterpriseSearchAggregatorSettings": {
+"chunk": 1,
+"field": 268
+},
+"EssentialSearchEnabled": {
+"chunk": 1,
+"field": 60
+},
+"ExtensibleEnterpriseSSOBlocklist": {
+"chunk": 1,
+"field": 219
+},
+"ExtensionDOMActivityLoggingEnabled": {
+"chunk": 1,
+"field": 394
+},
+"ExtensionDeveloperModeSettings": {
+"chunk": 1,
+"field": 231
+},
+"ExtensionExtendedBackgroundLifetimeForPortConnectionsToUrls": {
+"chunk": 1,
+"field": 34
+},
+"ExtensionForceInstallWithNonMalwareViolationsEnabled": {
+"chunk": 1,
+"field": 355
+},
+"ExtensionInstallCloudPolicyChecksEnabled": {
+"chunk": 1,
+"field": 350
+},
+"ExtensionInstallTypeBlocklist": {
+"chunk": 1,
+"field": 139
+},
+"ExtensionOAuthRedirectUrls": {
+"chunk": 1,
+"field": 109
+},
+"ExtensionReviewPromptsEnabled": {
+"chunk": 1,
+"field": 443
+},
+"ExtensionUnpublishedAvailability": {
+"chunk": 1,
+"field": 31
+},
+"ExternalStorageAllowlist": {
+"chunk": 1,
+"field": 291
+},
+"F11KeyModifier": {
+"chunk": 1,
+"field": 160
+},
+"F12KeyModifier": {
+"chunk": 1,
+"field": 161
+},
+"FaceGazeEnabled": {
+"chunk": 1,
+"field": 310
+},
+"FeedbackSurveysEnabled": {
+"chunk": 1,
+"field": 142
+},
+"FileOrDirectoryPickerWithoutGestureAllowedForOrigins": {
+"chunk": 1,
+"field": 53
+},
+"FilePickerChooseFromDriveSettings": {
+"chunk": 1,
+"field": 277
+},
+"FindAndFillWithGeminiSettings": {
+"chunk": 1,
+"field": 434
+},
+"FindsSettings": {
+"chunk": 1,
+"field": 399
+},
+"FloatingSsoDomainBlocklist": {
+"chunk": 1,
+"field": 158
+},
+"FloatingSsoDomainBlocklistExceptions": {
+"chunk": 1,
+"field": 159
+},
+"FloatingSsoEnabled": {
+"chunk": 1,
+"field": 157
+},
+"FloatingSsoSessionCookiesIncluded": {
+"chunk": 1,
+"field": 339
+},
+"FocusModeSoundsEnabled": {
+"chunk": 1,
+"field": 230
+},
+"ForceEnablePepperVideoDecoderDevAPI": {
+"chunk": 1,
+"field": 17
+},
+"ForceForegroundPriorityForAllTabs": {
+"chunk": 1,
+"field": 391
+},
+"ForceForegroundPriorityForUrls": {
+"chunk": 1,
+"field": 403
+},
+"ForcePermissionPolicyUnloadDefaultEnabled": {
+"chunk": 1,
+"field": 97
+},
+"FullRestoreMode": {
+"chunk": 1,
+"field": 115
+},
+"GeminiActOnWebAllowedForURLs": {
+"chunk": 1,
+"field": 380
+},
+"GeminiActOnWebBlockedForURLs": {
+"chunk": 1,
+"field": 381
+},
+"GeminiActOnWebSettings": {
+"chunk": 1,
+"field": 362
+},
+"GeminiChromeFileUploadSettings": {
+"chunk": 1,
+"field": 433
+},
+"GeminiEnterpriseSettings": {
+"chunk": 1,
+"field": 417
+},
+"GeminiSettings": {
+"chunk": 1,
+"field": 295
+},
+"GeminiSparkSettings": {
+"chunk": 1,
+"field": 412
+},
+"GenAIInlineImageSettings": {
+"chunk": 1,
+"field": 306
+},
+"GenAILocalFoundationalModelSettings": {
+"chunk": 1,
+"field": 211
+},
+"GenAIPhotoEditingSettings": {
+"chunk": 1,
+"field": 285
+},
+"GenAISmartGroupingSettings": {
+"chunk": 1,
+"field": 296
+},
+"GenAIVcBackgroundSettings": {
+"chunk": 1,
+"field": 224
+},
+"GenAIWallpaperSettings": {
+"chunk": 1,
+"field": 223
+},
+"GenAiChromeOsSmartActionsSettings": {
+"chunk": 1,
+"field": 297
+},
+"GenAiDefaultSettings": {
+"chunk": 1,
+"field": 256
+},
+"GeolocationBlockedForUrls": {
+"chunk": 1,
+"field": 371
+},
+"GlanceablesEnabled": {
+"chunk": 1,
+"field": 91
+},
+"GoogleLocationServicesEnabled": {
+"chunk": 1,
+"field": 174
+},
+"GoogleSearchSidePanelEnabled": {
+"chunk": 1,
+"field": 67
+},
+"GoogleWorkspaceCloudUpload": {
+"chunk": 1,
+"field": 106
+},
+"HappyEyeballsV3Enabled": {
+"chunk": 1,
+"field": 309
+},
+"HelpMeReadSettings": {
+"chunk": 1,
+"field": 255
+},
+"HelpMeWriteSettings": {
+"chunk": 1,
+"field": 147
+},
+"HistorySearchSettings": {
+"chunk": 1,
+"field": 235
+},
+"HomeAndEndKeysModifier": {
+"chunk": 1,
+"field": 165
+},
+"HttpAllowlist": {
+"chunk": 1,
+"field": 42
+},
+"HttpHeaderInjection": {
+"chunk": 1,
+"field": 414
+},
+"HttpsUpgradesEnabled": {
+"chunk": 1,
+"field": 43
+},
+"IPv6ReachabilityOverrideEnabled": {
+"chunk": 1,
+"field": 132
+},
+"IdleDetectionAllowedForUrls": {
+"chunk": 1,
+"field": 368
+},
+"IdleDetectionBlockedForUrls": {
+"chunk": 1,
+"field": 369
+},
+"IncognitoModeUrlAllowlist": {
+"chunk": 1,
+"field": 353
+},
+"IncognitoModeUrlBlocklist": {
+"chunk": 1,
+"field": 352
+},
+"InsecureHashesInTLSHandshakesEnabled": {
+"chunk": 1,
+"field": 55
+},
+"InsertKeyModifier": {
+"chunk": 1,
+"field": 167
+},
+"IsolateOriginsShortlist": {
+"chunk": 1,
+"field": 420
+},
+"IsolatedModeSettings": {
+"chunk": 1,
+"field": 411
+},
+"IsolatedWebAppUserInstallationEnabled": {
+"chunk": 1,
+"field": 393
+},
+"JavaScriptOptimizerAllowedForSites": {
+"chunk": 1,
+"field": 238
+},
+"JavaScriptOptimizerBlockedForSites": {
+"chunk": 1,
+"field": 239
+},
+"KerberosUseCustomPrefilledConfig": {
+"chunk": 1,
+"field": 13
+},
+"KeyboardFocusableScrollersEnabled": {
+"chunk": 1,
+"field": 218
+},
+"KioskActiveWiFiCredentialsScopeChangeEnabled": {
+"chunk": 1,
+"field": 257
+},
+"KioskApplicationLogCollectionEnabled": {
+"chunk": 1,
+"field": 329
+},
+"KioskBrowserPermissionsAllowedForOrigins": {
+"chunk": 1,
+"field": 233
+},
+"KioskChromeAppsForceAllowed": {
+"chunk": 1,
+"field": 304
+},
+"KioskPinchToZoomAllowed": {
+"chunk": 1,
+"field": 405
+},
+"KioskTroubleshootingToolsEnabled": {
+"chunk": 1,
+"field": 16
+},
+"KioskWebAppOfflineEnabled": {
+"chunk": 1,
+"field": 253
+},
+"KrispNoiseCancellationEnabled": {
+"chunk": 1,
+"field": 397
+},
+"LacrosSelection": {
+"chunk": 1,
+"field": 5
+},
+"LegacyCookieScopeEnabled": {
+"chunk": 1,
+"field": 342
+},
+"LegacyCookieScopeEnabledForDomainList": {
+"chunk": 1,
+"field": 343
+},
+"LegacyTechReportAllowlist": {
+"chunk": 1,
+"field": 61
+},
+"LensOnGalleryEnabled": {
+"chunk": 1,
+"field": 234
+},
+"LensOverlaySettings": {
+"chunk": 1,
+"field": 226
+},
+"ListenToThisPageEnabled": {
+"chunk": 1,
+"field": 149
+},
+"LiveCaptionEnabled": {
+"chunk": 1,
+"field": 334
+},
+"LiveTranslateEnabled": {
+"chunk": 1,
+"field": 278
+},
+"LocalAuthFactorsComplexity": {
+"chunk": 1,
+"field": 363
+},
+"LocalNetworkAccessAllowedForUrls": {
+"chunk": 1,
+"field": 331
+},
+"LocalNetworkAccessBlockedForUrls": {
+"chunk": 1,
+"field": 332
+},
+"LocalNetworkAccessIpAddressSpaceOverrides": {
+"chunk": 1,
+"field": 383
+},
+"LocalNetworkAccessPermissionsPolicyDefaultEnabled": {
+"chunk": 1,
+"field": 390
+},
+"LocalNetworkAccessRestrictionsEnabled": {
+"chunk": 1,
+"field": 324
+},
+"LocalNetworkAccessRestrictionsTemporaryOptOut": {
+"chunk": 1,
+"field": 361
+},
+"LocalNetworkAllowedForUrls": {
+"chunk": 1,
+"field": 385
+},
+"LocalNetworkBlockedForUrls": {
+"chunk": 1,
+"field": 386
+},
+"LocalUserFilesAllowed": {
+"chunk": 1,
+"field": 176
+},
+"LocalUserFilesMigrationDestination": {
+"chunk": 1,
+"field": 232
+},
+"LockScreenAutoStartOnlineReauth": {
+"chunk": 1,
+"field": 217
+},
+"LoopbackNetworkAllowedForUrls": {
+"chunk": 1,
+"field": 387
+},
+"LoopbackNetworkBlockedForUrls": {
+"chunk": 1,
+"field": 388
+},
+"MandatoryExtensionsForIncognitoNavigation": {
+"chunk": 1,
+"field": 45
+},
+"MaxConnectionsPerProxyForWebSocket": {
+"chunk": 1,
+"field": 396
+},
+"MemorySaverModeSavings": {
+"chunk": 1,
+"field": 221
+},
+"MicrosoftOfficeCloudUpload": {
+"chunk": 1,
+"field": 105
+},
+"MicrosoftOneDriveAccountRestrictions": {
+"chunk": 1,
+"field": 134
+},
+"MicrosoftOneDriveMount": {
+"chunk": 1,
+"field": 108
+},
+"MixedContentAutoupgradeEnabled": {
+"chunk": 1,
+"field": 32
+},
+"MultiScreenCaptureAllowedForUrls": {
+"chunk": 1,
+"field": 201
+},
+"MutationEventsEnabled": {
+"chunk": 1,
+"field": 187
+},
+"NTPFooterExtensionAttributionEnabled": {
+"chunk": 1,
+"field": 320
+},
+"NTPFooterManagementNoticeEnabled": {
+"chunk": 1,
+"field": 319
+},
+"NTPOutlookCardVisible": {
+"chunk": 1,
+"field": 271
+},
+"NTPSharepointCardVisible": {
+"chunk": 1,
+"field": 272
+},
+"NTPShortcuts": {
+"chunk": 1,
+"field": 348
+},
+"NativeClientForceAllowed": {
+"chunk": 1,
+"field": 81
+},
+"NativeHostsExecutablesLaunchDirectly": {
+"chunk": 1,
+"field": 141
+},
+"NewBaseUrlInheritanceBehaviorAllowed": {
+"chunk": 1,
+"field": 1
+},
+"OnDataCopiedEnterpriseConnector": {
+"chunk": 1,
+"field": 437
+},
+"OnNetworkRequestEnterpriseConnector": {
+"chunk": 1,
+"field": 435
+},
+"OopPrintDriversAllowed": {
+"chunk": 1,
+"field": 144
+},
+"OrcaEnabled": {
+"chunk": 1,
+"field": 196
+},
+"OriginKeyedProcessesEnabled": {
+"chunk": 1,
+"field": 347
+},
+"OutOfProcessSystemDnsResolutionEnabled": {
+"chunk": 1,
+"field": 30
+},
+"PPAPISharedImagesForVideoDecoderAllowed": {
+"chunk": 1,
+"field": 123
+},
+"PPAPISharedImagesSwapChainAllowed": {
+"chunk": 1,
+"field": 7
+},
+"PageUpAndPageDownKeysModifier": {
+"chunk": 1,
+"field": 166
+},
+"ParcelTrackingEnabled": {
+"chunk": 1,
+"field": 140
+},
+"PartitionedBlobUrlUsage": {
+"chunk": 1,
+"field": 286
+},
+"PasswordManagerBlocklist": {
+"chunk": 1,
+"field": 322
+},
+"PasswordManagerPasskeysEnabled": {
+"chunk": 1,
+"field": 276
+},
+"PasswordSharingEnabled": {
+"chunk": 1,
+"field": 130
+},
+"PdfUseSkiaRendererEnabled": {
+"chunk": 1,
+"field": 68
+},
+"PdfViewerOutOfProcessIframeEnabled": {
+"chunk": 1,
+"field": 216
+},
+"PdfXfaFormsEnabled": {
+"chunk": 1,
+"field": 372
+},
+"PhysicalKeyboardAutocorrect": {
+"chunk": 1,
+"field": 78
+},
+"PhysicalKeyboardPredictiveWriting": {
+"chunk": 1,
+"field": 79
+},
+"PolicyTestPageEnabled": {
+"chunk": 1,
+"field": 72
+},
+"PostQuantumKeyAgreementEnabled": {
+"chunk": 1,
+"field": 77
+},
+"PreciseGeolocationAllowedForUrls": {
+"chunk": 1,
+"field": 370
+},
+"PreferSlowCiphers": {
+"chunk": 1,
+"field": 358
+},
+"PreferSlowKexAlgorithms": {
+"chunk": 1,
+"field": 354
+},
+"PrefetchWithServiceWorkerEnabled": {
+"chunk": 1,
+"field": 325
+},
+"PrefixedVideoFullscreenApiAvailability": {
+"chunk": 1,
+"field": 194
+},
+"PrintingLPACSandboxEnabled": {
+"chunk": 1,
+"field": 248
+},
+"PrivacySandboxAdMeasurementEnabled": {
+"chunk": 1,
+"field": 11
+},
+"PrivacySandboxAdTopicsEnabled": {
+"chunk": 1,
+"field": 9
+},
+"PrivacySandboxFingerprintingProtectionEnabled": {
+"chunk": 1,
+"field": 200
+},
+"PrivacySandboxIpProtectionEnabled": {
+"chunk": 1,
+"field": 195
+},
+"PrivacySandboxPromptEnabled": {
+"chunk": 1,
+"field": 8
+},
+"PrivacySandboxSiteEnabledAdsEnabled": {
+"chunk": 1,
+"field": 10
+},
+"PrivateNetworkAccessRestrictionsEnabled": {
+"chunk": 1,
+"field": 137
+},
+"ProcessIsolationEnabled": {
+"chunk": 1,
+"field": 428
+},
+"ProfileLabel": {
+"chunk": 1,
+"field": 199
+},
+"ProfileReauthPrompt": {
+"chunk": 1,
+"field": 124
+},
+"ProfileSeparationDataMigrationSettings": {
+"chunk": 1,
+"field": 113
+},
+"ProfileSeparationDomainExceptionList": {
+"chunk": 1,
+"field": 114
+},
+"ProfileSeparationSettings": {
+"chunk": 1,
+"field": 112
+},
+"PromotionsEnabled": {
+"chunk": 1,
+"field": 240
+},
+"ProtectedContentIdentifiersAllowed": {
+"chunk": 1,
+"field": 341
+},
+"ProvisionManagedClientCertificateForBrowser": {
+"chunk": 1,
+"field": 294
+},
+"ProvisionManagedClientCertificateForUser": {
+"chunk": 1,
+"field": 175
+},
+"ProvisionalNotificationsAllowed": {
+"chunk": 1,
+"field": 311
+},
+"ProxyOverrideRules": {
+"chunk": 1,
+"field": 364
+},
+"ProxyProvisioningDomains": {
+"chunk": 1,
+"field": 426
+},
+"QRCodeGeneratorEnabled": {
+"chunk": 1,
+"field": 241
+},
+"QuickOfficeForceFileDownloadEnabled": {
+"chunk": 1,
+"field": 111
+},
+"RSAKeyUsageForLocalAnchorsEnabled": {
+"chunk": 1,
+"field": 70
+},
+"ReduceAcceptLanguageEnabled": {
+"chunk": 1,
+"field": 305
+},
+"RelatedWebsiteSetsEnabled": {
+"chunk": 1,
+"field": 125
+},
+"RelatedWebsiteSetsOverrides": {
+"chunk": 1,
+"field": 128
+},
+"RelaunchFastIfOutdated": {
+"chunk": 1,
+"field": 298
+},
+"RemoteAccessHostAllowEnterpriseFileTransfer": {
+"chunk": 1,
+"field": 87
+},
+"RemoteAccessHostAllowEnterpriseRemoteSupportConnections": {
+"chunk": 1,
+"field": 47
+},
+"RemoteAccessHostAllowPinAuthentication": {
+"chunk": 1,
+"field": 183
+},
+"RemoteAccessHostAllowUrlForwarding": {
+"chunk": 1,
+"field": 170
+},
+"RendererAccessibilityEnabled": {
+"chunk": 1,
+"field": 442
+},
+"ReportAppInventory": {
+"chunk": 1,
+"field": 62
+},
+"ReportAppUsage": {
+"chunk": 1,
+"field": 63
+},
+"ReportAppUsageCollectionRateMs": {
+"chunk": 1,
+"field": 64
+},
+"ReportWebsiteActivityAllowlist": {
+"chunk": 1,
+"field": 98
+},
+"ReportWebsiteTelemetry": {
+"chunk": 1,
+"field": 103
+},
+"ReportWebsiteTelemetryAllowlist": {
+"chunk": 1,
+"field": 99
+},
+"ReportWebsiteTelemetryCollectionRateMs": {
+"chunk": 1,
+"field": 100
+},
+"RestrictBackgroundFetchFromServiceWorkerEnabled": {
+"chunk": 1,
+"field": 416
+},
+"RestrictCoreSharingOnRenderer": {
+"chunk": 1,
+"field": 346
+},
+"RestrictPdfSaveToGoogleDriveAccountsToPattern": {
+"chunk": 1,
+"field": 384
+},
+"RestrictYouTubeCookiesDeletion": {
+"chunk": 1,
+"field": 418
+},
+"SaasUsageReportingDomainUrlsForBrowsers": {
+"chunk": 1,
+"field": 378
+},
+"SaasUsageReportingDomainUrlsForProfiles": {
+"chunk": 1,
+"field": 379
+},
+"SafeBrowsingDeepScanningEnabled": {
+"chunk": 1,
+"field": 117
+},
+"SafeBrowsingProxiedRealTimeChecksAllowed": {
+"chunk": 1,
+"field": 76
+},
+"SafeBrowsingSurveysEnabled": {
+"chunk": 1,
+"field": 101
+},
+"ScreenCaptureLocation": {
+"chunk": 1,
+"field": 171
+},
+"ScreenCaptureWithoutGestureAllowedForOrigins": {
+"chunk": 1,
+"field": 52
+},
+"ScreensaverLockScreenEnabled": {
+"chunk": 1,
+"field": 19
+},
+"ScreensaverLockScreenIdleTimeoutSeconds": {
+"chunk": 1,
+"field": 20
+},
+"ScreensaverLockScreenImageDisplayIntervalSeconds": {
+"chunk": 1,
+"field": 21
+},
+"ScreensaverLockScreenImages": {
+"chunk": 1,
+"field": 22
+},
+"SearchContentSharingSettings": {
+"chunk": 1,
+"field": 376
+},
+"SecuritySignalsClientCertificatesSelectors": {
+"chunk": 1,
+"field": 406
+},
+"SelectParserRelaxationEnabled": {
+"chunk": 1,
+"field": 266
+},
+"ServiceWorkerAutoPreloadEnabled": {
+"chunk": 1,
+"field": 340
+},
+"ServiceWorkerToControlSrcdocIframeEnabled": {
+"chunk": 1,
+"field": 293
+},
+"SharedWorkerBlobURLFixEnabled": {
+"chunk": 1,
+"field": 273
+},
+"SharedWorkerExtendedLifetimeEnabled": {
+"chunk": 1,
+"field": 395
+},
+"ShortcutCustomizationAllowed": {
+"chunk": 1,
+"field": 107
+},
+"ShowAiIntroScreenEnabled": {
+"chunk": 1,
+"field": 208
+},
+"ShowCastSessionsStartedByOtherDevices": {
+"chunk": 1,
+"field": 2
+},
+"ShowDisplaySizeScreenEnabled": {
+"chunk": 1,
+"field": 59
+},
+"ShowGeminiIntroScreenEnabled": {
+"chunk": 1,
+"field": 249
+},
+"ShowHumanPresenceSensorScreenEnabled": {
+"chunk": 1,
+"field": 129
+},
+"ShowInputOptionsInShelfEnabled": {
+"chunk": 1,
+"field": 445
+},
+"ShowTouchpadScrollScreenEnabled": {
+"chunk": 1,
+"field": 40
+},
+"SilentPrintingEnabled": {
+"chunk": 1,
+"field": 357
+},
+"SiteSearchSettings": {
+"chunk": 1,
+"field": 136
+},
+"SmartCardConnectAllowedForUrls": {
+"chunk": 1,
+"field": 280
+},
+"SmartCardConnectBlockedForUrls": {
+"chunk": 1,
+"field": 281
+},
+"SmartTabSharingSettings": {
+"chunk": 1,
+"field": 413
+},
+"StandardizedBrowserZoomEnabled": {
+"chunk": 1,
+"field": 246
+},
+"StaticStorageQuotaEnabled": {
+"chunk": 1,
+"field": 377
+},
+"SubAppsWithoutPromptsAllowedForOrigins": {
+"chunk": 1,
+"field": 409
+},
+"SubAppsWithoutPromptsBlockedForOrigins": {
+"chunk": 1,
+"field": 410
+},
+"SystemShortcutBehavior": {
+"chunk": 1,
+"field": 244
+},
+"TLS13EarlyDataEnabled": {
+"chunk": 1,
+"field": 323
+},
+"TabCompareSettings": {
+"chunk": 1,
+"field": 251
+},
+"TabGroupSharingSettings": {
+"chunk": 1,
+"field": 318
+},
+"TabOrganizerSettings": {
+"chunk": 1,
+"field": 146
+},
+"ThirdPartyAiChatSettings": {
+"chunk": 1,
+"field": 427
+},
+"ThirdPartyPasswordManagersAllowed": {
+"chunk": 1,
+"field": 227
+},
+"ThirdPartyStoragePartitioningBlockedForOrigins": {
+"chunk": 1,
+"field": 51
+},
+"ToolbarAvatarLabelSettings": {
+"chunk": 1,
+"field": 168
+},
+"TranslatorAPIAllowed": {
+"chunk": 1,
+"field": 269
+},
+"TryOnYouSettings": {
+"chunk": 1,
+"field": 429
+},
+"UiAutomationProviderEnabled": {
+"chunk": 1,
+"field": 205
+},
+"UnaffiliatedDeviceArcAllowed": {
+"chunk": 1,
+"field": 127
+},
+"UpdateOnZeroWindowEnabled": {
+"chunk": 1,
+"field": 431
+},
+"UrlKeyedMetricsAllowed": {
+"chunk": 1,
+"field": 73
+},
+"UsbDetectorNotificationEnabled": {
+"chunk": 1,
+"field": 4
+},
+"UseMojoVideoDecoderForPepperAllowed": {
+"chunk": 1,
+"field": 6
+},
+"UserAvatarCustomizationSelectorsEnabled": {
+"chunk": 1,
+"field": 49
+},
+"UserContextAwareAccessSignalsAllowlist": {
+"chunk": 1,
+"field": 66
+},
+"UserFeedbackWithLowLevelDebugDataAllowed": {
+"chunk": 1,
+"field": 133
+},
+"UserSecurityAuthenticatedReporting": {
+"chunk": 1,
+"field": 308
+},
+"UserSecuritySignalsReporting": {
+"chunk": 1,
+"field": 307
+},
+"VirtualKeyboardSmartVisibilityEnabled": {
+"chunk": 1,
+"field": 162
+},
+"VoiceTypingSettings": {
+"chunk": 1,
+"field": 425
+},
+"WallpaperGooglePhotosIntegrationEnabled": {
+"chunk": 1,
+"field": 37
+},
+"WatermarkStyle": {
+"chunk": 1,
+"field": 328
+},
+"WebAnnotations": {
+"chunk": 1,
+"field": 163
+},
+"WebAppInstallByUserEnabled": {
+"chunk": 1,
+"field": 382
+},
+"WebAudioOutputBufferingEnabled": {
+"chunk": 1,
+"field": 270
+},
+"WebAuthenticationRemoteDesktopAllowedOrigins": {
+"chunk": 1,
+"field": 292
+},
+"WebPrintingAllowedForUrls": {
+"chunk": 1,
+"field": 180
+},
+"WebPrintingBlockedForUrls": {
+"chunk": 1,
+"field": 181
+},
+"WebRtcDiagnosticLogCollectionAllowedForOrigins": {
+"chunk": 1,
+"field": 392
+},
+"WebRtcIPHandlingUrl": {
+"chunk": 1,
+"field": 284
+},
+"WebRtcPostQuantumKeyAgreement": {
+"chunk": 1,
+"field": 344
+},
+"WebRtcTextLogCollectionAllowed": {
+"chunk": 1,
+"field": 38
+},
+"WindowManagementAllowedForUrls": {
+"chunk": 1,
+"field": 28
+},
+"WindowManagementBlockedForUrls": {
+"chunk": 1,
+"field": 29
+},
+"XSLTEnabled": {
+"chunk": 1,
+"field": 389
+},
+"ZstdContentEncodingEnabled": {
+"chunk": 1,
+"field": 131
+}
+},
+"mapping": {
+"10": "DisableSpdy",
+"100": "ImportHistory",
+"1000": "EnterpriseProfileCreationKeepBrowsingData",
+"1001": "KerberosDomainAutocomplete",
+"1002": "KerberosCustomPrefilledConfig",
+"1003": "UnmanagedDeviceSignalsConsentFlowEnabled",
+"1004": "PersistentQuotaEnabled",
+"1005": "DeviceLoginScreenContextAwareAccessSignalsAllowlist",
+"1006": "PrefixedStorageInfoEnabled",
+"1007": "LoadCryptoTokenExtension",
+"1008": "HighEfficiencyModeEnabled",
+"1009": "DevicePrintingClientNameTemplate",
+"101": "ImportHomepage",
+"1010": "ReportDeviceSignalStrengthEventDrivenTelemetry",
+"1011": "BatterySaverModeAvailability",
+"1012": "TabDiscardingExceptions",
+"1013": "AssistantWebEnabled",
+"1014": "LacrosDataBackwardMigrationMode",
+"1015": "StrictMimetypeCheckForWorkerScriptsEnabled",
+"1016": "RecoveryFactorBehavior",
+"1017": "CalendarIntegrationEnabled",
+"1018": "DeviceReportXDREvents",
+"1019": "TrashEnabled",
+"102": "ImportSearchEngine",
+"1020": "ShoppingListEnabled",
+"1021": "DeskAPIThirdPartyAccessEnabled",
+"1022": "FileSystemSyncAccessHandleAsyncInterfaceEnabled",
+"1023": "DefaultHandlersForFileExtensions",
+"1024": "IsolatedWebAppInstallForceList",
+"1025": "DeskAPIThirdPartyAllowlist",
+"1026": "VirtualKeyboardResizesLayoutByDefault",
+"1027": "HindiInscriptLayoutEnabled",
+"1028": "DeviceKeyboardBacklightColor",
+"1029": "LensDesktopNTPSearchEnabled",
+"103": "ImportSavedPasswords",
+"1030": "AccessControlAllowMethodsInCORSPreflightSpecConformant",
+"1031": "AllowWebAuthnWithBrokenTlsCerts",
+"1032": "ExtensionManifestV2Availability",
+"1033": "OffsetParentNewSpecBehaviorEnabled",
+"1034": "SendMouseEventsDisabledFormControlsEnabled",
+"1035": "BruschettaVMConfiguration",
+"1036": "DnsOverHttpsSalt",
+"1037": "DnsOverHttpsTemplatesWithIdentifiers",
+"1038": "IdleTimeoutActions",
+"1039": "ThrottleNonVisibleCrossOriginIframesAllowed",
+"104": "AutoSelectCertificateForUrls",
+"1040": "PdfLocalFileAccessAllowedForDomains",
+"1041": "FloatingWorkspaceV2Enabled",
+"105": "URLBlacklist",
+"106": "URLWhitelist",
+"107": "NotificationsAllowedForUrls",
+"108": "NotificationsBlockedForUrls",
+"109": "OpenNetworkConfiguration",
+"11": "JavascriptEnabled",
+"110": "DeviceOpenNetworkConfiguration",
+"111": "CloudPrintSubmitEnabled",
+"112": "DiskCacheSize",
+"113": "MediaCacheSize",
+"114": "EnterpriseWebStoreURL",
+"115": "EnterpriseWebStoreName",
+"118": "ProxySettings",
+"119": "DisablePrintPreview",
+"12": "IncognitoEnabled",
+"120": "DisableSSLRecordSplitting",
+"121": "ReportDeviceVersionInfo",
+"122": "ReportDeviceActivityTimes",
+"123": "ReportDeviceBootMode",
+"124": "DeviceUserWhitelist",
+"125": "DeviceAllowNewUsers",
+"126": "DeviceGuestModeEnabled",
+"127": "DeviceShowUserNamesOnSignin",
+"128": "DeviceDataRoamingEnabled",
+"129": "DeviceMetricsReportingEnabled",
+"13": "SavingBrowserHistoryDisabled",
+"130": "DeviceEphemeralUsersEnabled",
+"131": "EnableOnlineRevocationChecks",
+"132": "DeviceIdleLogoutTimeout",
+"133": "DeviceIdleLogoutWarningDuration",
+"134": "DeviceLoginScreenSaverId",
+"135": "DeviceLoginScreenSaverTimeout",
+"136": "ChromeOsReleaseChannelDelegated",
+"137": "DeviceAppPack",
+"138": "DeviceAutoUpdateDisabled",
+"139": "DeviceStartUpUrls",
+"14": "PrintingEnabled",
+"140": "BackgroundModeEnabled",
+"141": "DriveDisabled",
+"142": "DriveDisabledOverCellular",
+"144": "DeviceTargetVersionPrefix",
+"145": "ReportDeviceLocation",
+"146": "PinnedLauncherApps",
+"147": "DeviceUpdateScatterFactor",
+"148": "DeviceUpdateAllowedConnectionTypes",
+"149": "RestrictSigninToPattern",
+"15": "CloudPrintProxyEnabled",
+"150": "ExtensionInstallSources",
+"151": "DefaultMediaStreamSetting",
+"152": "DisableSafeBrowsingProceedAnyway",
+"153": "SpellCheckServiceEnabled",
+"154": "ExternalStorageDisabled",
+"155": "DisableScreenshots",
+"156": "RemoteAccessHostDomain",
+"157": "RemoteAccessHostRequireTwoFactor",
+"158": "RemoteAccessHostTalkGadgetPrefix",
+"159": "RemoteAccessHostRequireCurtain",
+"16": "SafeBrowsingEnabled",
+"160": "SystemTimezone",
+"161": "AudioOutputAllowed",
+"162": "AudioCaptureAllowed",
+"163": "DefaultSearchProviderAlternateURLs",
+"164": "ForceSafeSearch",
+"165": "DeviceLocalAccounts",
+"166": "ShowLogoutButtonInTray",
+"167": "BuiltInDnsClientEnabled",
+"168": "ShelfAutoHideBehavior",
+"169": "VideoCaptureAllowed",
+"17": "MetricsReportingEnabled",
+"170": "ExtensionAllowedTypes",
+"171": "UserDisplayName",
+"172": "SessionLengthLimit",
+"173": "DefaultSearchProviderSearchTermsReplacementKey",
+"174": "ScreenDimDelayAC",
+"175": "ScreenOffDelayAC",
+"176": "ScreenLockDelayAC",
+"177": "IdleDelayAC",
+"178": "ScreenDimDelayBattery",
+"179": "ScreenOffDelayBattery",
+"18": "PasswordManagerEnabled",
+"180": "ScreenLockDelayBattery",
+"181": "IdleDelayBattery",
+"182": "IdleAction",
+"183": "LidCloseAction",
+"184": "PowerManagementUsesAudioActivity",
+"185": "PowerManagementUsesVideoActivity",
+"186": "PresentationIdleDelayScale",
+"187": "DeviceAllowRedeemChromeOsRegistrationOffers",
+"188": "TermsOfServiceURL",
+"189": "AllowDeletingBrowserHistory",
+"19": "PasswordManagerAllowShowPasswords",
+"190": "ShowAccessibilityOptionsInSystemTrayMenu",
+"191": "HideWebStoreIcon",
+"192": "SigninAllowed",
+"193": "DeviceStartUpFlags",
+"194": "UptimeLimit",
+"195": "RebootAfterUpdate",
+"196": "DeviceLocalAccountAutoLoginId",
+"197": "DeviceLocalAccountAutoLoginDelay",
+"198": "VariationsRestrictParameter",
+"199": "IdleWarningDelayAC",
+"20": "AutoFillEnabled",
+"200": "IdleWarningDelayBattery",
+"201": "DeviceVariationsRestrictParameter",
+"202": "AttestationEnabledForUser",
+"203": "AttestationExtensionWhitelist",
+"204": "DeviceLocalAccountAutoLoginBailoutEnabled",
+"205": "AllowScreenWakeLocks",
+"209": "AttestationEnabledForDevice",
+"21": "DisabledPlugins",
+"210": "AudioCaptureAllowedUrls",
+"211": "VideoCaptureAllowedUrls",
+"212": "UserActivityScreenDimDelayScale",
+"213": "LargeCursorEnabled",
+"214": "SpokenFeedbackEnabled",
+"215": "HighContrastEnabled",
+"216": "ScreenMagnifierType",
+"217": "DeviceLoginScreenDefaultLargeCursorEnabled",
+"218": "DeviceLoginScreenDefaultSpokenFeedbackEnabled",
+"219": "DeviceLoginScreenDefaultHighContrastEnabled",
+"22": "SyncDisabled",
+"220": "DeviceLoginScreenDefaultScreenMagnifierType",
+"221": "SupervisedUsersEnabled",
+"222": "PresentationScreenDimDelayScale",
+"224": "IdleActionBattery",
+"225": "SupervisedUserCreationEnabled",
+"226": "ReportDeviceNetworkInterfaces",
+"227": "DeviceLoginScreenPowerManagement",
+"228": "IdleActionAC",
+"229": "ManagedBookmarks",
+"23": "ProxyMode",
+"230": "MaxInvalidationFetchDelay",
+"231": "DefaultSearchProviderImageURL",
+"232": "DefaultSearchProviderSearchURLPostParams",
+"233": "DefaultSearchProviderSuggestURLPostParams",
+"234": "DefaultSearchProviderInstantURLPostParams",
+"235": "DefaultSearchProviderImageURLPostParams",
+"236": "RemoteAccessHostAllowClientPairing",
+"237": "RequireOnlineRevocationChecksForLocalAnchors",
+"238": "SystemUse24HourClock",
+"239": "DefaultSearchProviderNewTabURL",
+"24": "ProxyServerMode",
+"241": "AttestationForContentProtectionEnabled",
+"242": "FullscreenAllowed",
+"243": "DataCompressionProxyEnabled",
+"244": "DeviceAutoUpdateP2PEnabled",
+"245": "DeviceUpdateHttpDownloadsEnabled",
+"246": "ChromeOsMultiProfileUserBehavior",
+"247": "ForceEphemeralProfiles",
+"248": "AutoCleanUpStrategy",
+"249": "WaitForInitialUserActivity",
+"25": "ProxyServer",
+"250": "ReportDeviceUsers",
+"251": "UserAvatarImage",
+"252": "DeviceLocalAccountPromptForNetworkWhenOffline",
+"253": "NativeMessagingBlacklist",
+"254": "NativeMessagingWhitelist",
+"255": "NativeMessagingUserLevelHosts",
+"256": "SAMLOfflineSigninTimeLimit",
+"257": "VirtualKeyboardEnabled",
+"258": "DeviceLoginScreenDefaultVirtualKeyboardEnabled",
+"259": "RemoteAccessHostAllowGnubbyAuth",
+"26": "ProxyPacUrl",
+"260": "PowerManagementIdleSettings",
+"261": "ScreenLockDelays",
+"262": "KeyboardDefaultToFunctionKeys",
+"263": "WPADQuickCheckEnabled",
+"264": "WallpaperImage",
+"265": "RemoteAccessHostAllowRelayedConnection",
+"266": "RemoteAccessHostUdpPortRange",
+"267": "EnableDeprecatedWebBasedSignin",
+"268": "DeviceBlockDevmode",
+"269": "ShowAppsShortcutInBookmarkBar",
+"27": "ProxyBypassList",
+"270": "RegisteredProtocolHandlers",
+"271": "TouchVirtualKeyboardEnabled",
+"272": "EnableDeprecatedWebPlatformFeatures",
+"273": "DeviceTransferSAMLCookies",
+"274": "EasyUnlockAllowed",
+"275": "NetworkPredictionOptions",
+"276": "SessionLocales",
+"277": "BrowserGuestModeEnabled",
+"278": "BrowserAddPersonEnabled",
+"279": "ImportAutofillFormData",
+"28": "AuthSchemes",
+"280": "ExtensionSettings",
+"281": "SSLVersionMin",
+"282": "SSLVersionFallbackMin",
+"283": "ContextualSearchEnabled",
+"284": "ForceGoogleSafeSearch",
+"285": "ForceYouTubeSafetyMode",
+"286": "DeviceRebootOnShutdown",
+"287": "RemoteAccessHostMatchUsername",
+"288": "RemoteAccessHostTokenUrl",
+"289": "RemoteAccessHostTokenValidationUrl",
+"29": "DisableAuthNegotiateCnameLookup",
+"290": "RemoteAccessHostTokenValidationCertificateIssuer",
+"291": "RemoteAccessHostDebugOverridePolicies",
+"292": "ReportDeviceHardwareStatus",
+"293": "ReportDeviceSessionStatus",
+"294": "ReportUploadFrequency",
+"295": "HeartbeatEnabled",
+"296": "HeartbeatFrequency",
+"297": "CaptivePortalAuthenticationIgnoresProxy",
+"298": "ExtensionCacheSize",
+"299": "DeviceLoginScreenDomainAutoComplete",
+"3": "HomepageLocation",
+"30": "EnableAuthNegotiatePort",
+"300": "ForceMaximizeOnFirstRun",
+"301": "SafeBrowsingExtendedReportingOptInAllowed",
+"302": "SSLErrorOverrideAllowed",
+"303": "QuicAllowed",
+"304": "KeyPermissions",
+"305": "WelcomePageOnOSUpgradeEnabled",
+"306": "HardwareAccelerationModeEnabled",
+"307": "AuthAndroidNegotiateAccountType",
+"308": "LogUploadEnabled",
+"309": "UnifiedDesktopEnabledByDefault",
+"31": "AuthServerWhitelist",
+"310": "DefaultPrinterSelection",
+"311": "AllowDinosaurEasterEgg",
+"312": "RC4Enabled",
+"313": "DisplayRotationDefault",
+"314": "SupervisedUserContentProviderEnabled",
+"315": "DefaultKeygenSetting",
+"316": "KeygenAllowedForUrls",
+"317": "KeygenBlockedForUrls",
+"318": "RemoteAccessHostClientDomain",
+"319": "ArcEnabled",
+"32": "AuthNegotiateDelegateWhitelist",
+"320": "ArcPolicy",
+"321": "AllowKioskAppControlChromeVersion",
+"322": "DefaultWebBluetoothGuardSetting",
+"323": "LoginAuthenticationBehavior",
+"324": "UsbDetachableWhitelist",
+"325": "DeviceAllowBluetooth",
+"326": "SuppressUnsupportedOSWarning",
+"327": "DeviceQuirksDownloadEnabled",
+"328": "SystemTimezoneAutomaticDetection",
+"329": "TaskManagerEndProcessEnabled",
+"33": "GSSAPILibraryName",
+"330": "LoginVideoCaptureAllowedUrls",
+"331": "AllowScreenLock",
+"332": "ArcCertificatesSyncMode",
+"333": "AllowedDomainsForApps",
+"334": "PacHttpsUrlStrippingEnabled",
+"335": "EnableMediaRouter",
+"336": "DHEEnabled",
+"337": "CertificateTransparencyEnforcementDisabledForUrls",
+"338": "DeviceLoginScreenExtensions",
+"339": "ArcBackupRestoreEnabled",
+"34": "ExtensionInstallBlacklist",
+"340": "NTPContentSuggestionsEnabled",
+"341": "WebRtcUdpPortRange",
+"342": "EnableSha1ForLocalAnchors",
+"344": "ComponentUpdatesEnabled",
+"345": "ExternalStorageReadOnly",
+"346": "RemoteAccessHostAllowUiAccessForRemoteAssistance",
+"347": "Http09OnNonDefaultPortsEnabled",
+"348": "ForceBrowserSignin",
+"349": "AlwaysOpenPdfExternally",
+"35": "ExtensionInstallWhitelist",
+"350": "ForceYouTubeRestrict",
+"351": "ReportArcStatusEnabled",
+"352": "NativePrinters",
+"353": "NetworkThrottlingEnabled",
+"354": "QuickUnlockModeWhitelist",
+"355": "QuickUnlockTimeout",
+"356": "PinUnlockMinimumLength",
+"357": "PinUnlockMaximumLength",
+"358": "PinUnlockWeakPinsAllowed",
+"359": "DeviceWallpaperImage",
+"36": "ExtensionInstallForcelist",
+"360": "RoamingProfileSupportEnabled",
+"361": "RoamingProfileLocation",
+"362": "NewTabPageLocation",
+"363": "SSLVersionMax",
+"364": "ShowCastIconInToolbar",
+"365": "ArcLocationServiceEnabled",
+"366": "DeviceLoginScreenLocales",
+"367": "DeviceLoginScreenInputMethods",
+"368": "EnableCommonNameFallbackForLocalAnchors",
+"369": "InstantTetheringAllowed",
+"37": "ShowHomeButton",
+"370": "RemoteAccessHostDomainList",
+"371": "RemoteAccessHostClientDomainList",
+"372": "BrowserNetworkTimeQueriesEnabled",
+"373": "DownloadRestrictions",
+"374": "DeviceSecondFactorAuthentication",
+"375": "PrintPreviewUseSystemDefaultPrinter",
+"376": "DeviceEcryptfsMigrationStrategy",
+"377": "SafeBrowsingForTrustedSourcesEnabled",
+"378": "EcryptfsMigrationStrategy",
+"379": "NoteTakingAppsLockScreenWhitelist",
+"38": "DeveloperToolsDisabled",
+"380": "CastReceiverEnabled",
+"381": "CastReceiverName",
+"382": "DeviceOffHours",
+"383": "CloudPolicyOverridesPlatformPolicy",
+"384": "NativePrintersBulkConfiguration",
+"385": "NativePrintersBulkAccessMode",
+"386": "NativePrintersBulkBlacklist",
+"387": "NativePrintersBulkWhitelist",
+"388": "DeviceNativePrinters",
+"389": "DeviceNativePrintersAccessMode",
+"39": "RestoreOnStartup",
+"390": "DeviceNativePrintersBlacklist",
+"391": "DeviceNativePrintersWhitelist",
+"392": "TPMFirmwareUpdateSettings",
+"393": "RunAllFlashInAllowMode",
+"394": "AutofillCreditCardEnabled",
+"395": "NtlmV2Enabled",
+"396": "MinimumRequiredChromeVersion",
+"397": "PromptForDownloadLocation",
+"398": "DeviceLoginScreenAutoSelectCertificateForUrls",
+"399": "UnaffiliatedArcAllowed",
+"4": "HomepageIsNewTabPage",
+"40": "RestoreOnStartupURLs",
+"400": "IsolateOrigins",
+"401": "SitePerProcess",
+"402": "UnsafelyTreatInsecureOriginAsSecure",
+"403": "DefaultDownloadDirectory",
+"404": "SecurityKeyPermitAttestation",
+"405": "DeviceHostnameTemplate",
+"406": "AbusiveExperienceInterventionEnforce",
+"407": "SpellcheckLanguage",
+"408": "SecondaryGoogleAccountSigninAllowed",
+"409": "ThirdPartyBlockingEnabled",
+"41": "BlockThirdPartyCookies",
+"410": "SpellcheckEnabled",
+"411": "AdsSettingForIntrusiveAdsSites",
+"412": "RestrictAccountsToPatterns",
+"413": "PasswordProtectionWarningTrigger",
+"415": "EnableSymantecLegacyInfrastructure",
+"416": "WebDriverOverridesIncompatiblePolicies",
+"417": "DeviceKerberosEncryptionTypes",
+"418": "DeviceUserPolicyLoopbackProcessingMode",
+"419": "DeviceLoginScreenIsolateOrigins",
+"42": "DefaultSearchProviderEnabled",
+"420": "DeviceLoginScreenSitePerProcess",
+"421": "RelaunchNotification",
+"422": "RelaunchNotificationPeriod",
+"423": "VirtualMachinesAllowed",
+"424": "SafeBrowsingWhitelistDomains",
+"425": "PasswordProtectionLoginURLs",
+"426": "PasswordProtectionChangePasswordURL",
+"427": "DeviceMachinePasswordChangeRate",
+"428": "DeviceRollbackAllowedMilestones",
+"429": "DeviceRollbackToTargetVersion",
+"43": "DefaultSearchProviderName",
+"430": "MachineLevelUserCloudPolicyEnrollmentToken",
+"431": "SafeBrowsingExtendedReportingEnabled",
+"432": "AutoplayAllowed",
+"433": "AutoplayWhitelist",
+"434": "TabUnderAllowed",
+"435": "UserNativePrintersAllowed",
+"436": "DefaultWebUsbGuardSetting",
+"437": "CertificateTransparencyEnforcementDisabledForCas",
+"438": "CertificateTransparencyEnforcementDisabledForLegacyCas",
+"439": "MediaRouterCastAllowAllIPs",
+"44": "DefaultSearchProviderKeyword",
+"441": "WebUsbAskForUrls",
+"442": "WebUsbBlockedForUrls",
+"443": "ChromeCleanupEnabled",
+"444": "ChromeCleanupReportingEnabled",
+"445": "DeveloperToolsAvailability",
+"446": "AllowedLanguages",
+"447": "IsolateOriginsAndroid",
+"448": "SitePerProcessAndroid",
+"449": "ArcAppInstallEventLoggingEnabled",
+"45": "DefaultSearchProviderSearchURL",
+"450": "UsageTimeLimit",
+"451": "ArcBackupRestoreServiceEnabled",
+"452": "ArcGoogleLocationServicesEnabled",
+"453": "EnableSyncConsent",
+"454": "ContextualSuggestionsEnabled",
+"455": "DeviceAutoUpdateTimeRestrictions",
+"456": "PromotionalTabsEnabled",
+"457": "SafeSitesFilterBehavior",
+"458": "AllowedInputMethods",
+"459": "OverrideSecurityRestrictionsOnInsecureOrigin",
+"46": "DefaultSearchProviderSuggestURL",
+"460": "DeviceUpdateStagingSchedule",
+"461": "AutofillAddressEnabled",
+"462": "TabFreezingEnabled",
+"463": "UrlKeyedAnonymizedDataCollectionEnabled",
+"464": "NetworkFileSharesAllowed",
+"465": "DeviceLocalAccountManagedSessionEnabled",
+"466": "WebRtcEventLogCollectionAllowed",
+"467": "PowerSmartDimEnabled",
+"468": "CoalesceH2ConnectionsWithClientCertificatesForHosts",
+"469": "NetBiosShareDiscoveryEnabled",
+"47": "DefaultSearchProviderInstantURL",
+"470": "WebAppInstallForceList",
+"471": "SmsMessagesAllowed",
+"472": "ReportVersionData",
+"473": "ReportPolicyData",
+"474": "ReportMachineIDData",
+"475": "ReportUserIDData",
+"476": "PrintingAllowedColorModes",
+"477": "PrintingAllowedDuplexModes",
+"479": "PrintingColorDefault",
+"48": "DefaultSearchProviderIconURL",
+"480": "PrintingDuplexDefault",
+"481": "PrintingPaperSizeDefault",
+"482": "PrintHeaderFooter",
+"483": "CrostiniAllowed",
+"484": "DeviceUnaffiliatedCrostiniAllowed",
+"485": "EnterpriseHardwarePlatformAPIEnabled",
+"486": "ReportCrostiniUsageEnabled",
+"487": "VpnConfigAllowed",
+"488": "WebUsbAllowDevicesForUrls",
+"489": "BrowserSignin",
+"49": "DefaultSearchProviderEncodings",
+"490": "SmartLockSigninAllowed",
+"491": "NTLMShareAuthenticationEnabled",
+"492": "NetworkFileSharesPreconfiguredShares",
+"493": "AllowWakeLocks",
+"494": "ScreenBrightnessPercent",
+"495": "CloudReportingEnabled",
+"496": "AlternativeBrowserPath",
+"497": "AlternativeBrowserParameters",
+"498": "BrowserSwitcherUrlList",
+"499": "BrowserSwitcherUrlGreylist",
+"5": "DefaultBrowserSettingEnabled",
+"50": "DefaultCookiesSetting",
+"500": "BrowserSwitcherUseIeSitelist",
+"501": "ReportExtensionsAndPluginsData",
+"502": "ReportSafeBrowsingData",
+"503": "DeviceWiFiFastTransitionEnabled",
+"504": "DeviceDisplayResolution",
+"505": "PluginVmAllowed",
+"506": "PluginVmImage",
+"507": "CloudManagementEnrollmentMandatory",
+"508": "PrintingSendUsernameAndFilenameEnabled",
+"509": "ParentAccessCodeConfig",
+"51": "DefaultImagesSetting",
+"510": "DeviceGpoCacheLifetime",
+"511": "DeviceAuthDataCacheLifetime",
+"512": "CloudManagementEnrollmentToken",
+"513": "BrowserSwitcherExternalSitelistUrl",
+"514": "ReportDevicePowerStatus",
+"515": "ReportDeviceStorageStatus",
+"516": "ReportDeviceBoardStatus",
+"517": "PluginVmLicenseKey",
+"518": "ExtensionAllowInsecureUpdates",
+"519": "BrowserSwitcherEnabled",
+"52": "DefaultJavaScriptSetting",
+"520": "ClientCertificateManagementAllowed",
+"521": "BrowserSwitcherKeepLastChromeTab",
+"522": "DeviceRebootOnUserSignout",
+"523": "ForceNetworkInProcess",
+"524": "SchedulerConfiguration",
+"525": "CrostiniExportImportUIAllowed",
+"526": "BrowserSwitcherDelay",
+"527": "PrintingAllowedPinModes",
+"528": "PrintingPinDefault",
+"529": "VoiceInteractionContextEnabled",
+"53": "DefaultPluginsSetting",
+"530": "AuthNegotiateDelegateByKdcPolicy",
+"531": "VoiceInteractionHotwordEnabled",
+"532": "BrowserSwitcherChromePath",
+"533": "BrowserSwitcherChromeParameters",
+"534": "DeviceWilcoDtcAllowed",
+"535": "AllowPopupsDuringPageUnload",
+"536": "RemoteAccessHostAllowFileTransfer",
+"537": "DeviceWilcoDtcConfiguration",
+"538": "SpellcheckLanguageBlacklist",
+"539": "DeviceWiFiAllowed",
+"54": "DefaultPopupsSetting",
+"540": "DevicePowerPeakShiftEnabled",
+"541": "DevicePowerPeakShiftBatteryThreshold",
+"542": "DevicePowerPeakShiftDayConfig",
+"543": "DeviceBootOnAcEnabled",
+"544": "SignedHTTPExchangeEnabled",
+"545": "DeviceQuickFixBuildToken",
+"547": "SamlInSessionPasswordChangeEnabled",
+"549": "DeviceDockMacAddressSource",
+"55": "DefaultNotificationsSetting",
+"550": "DeviceAdvancedBatteryChargeModeEnabled",
+"551": "DeviceAdvancedBatteryChargeModeDayConfig",
+"552": "DeviceBatteryChargeMode",
+"553": "DeviceBatteryChargeCustomStartCharging",
+"554": "DeviceBatteryChargeCustomStopCharging",
+"555": "DeviceUsbPowerShareEnabled",
+"556": "PolicyListMultipleSourceMergeList",
+"557": "SamlPasswordExpirationAdvanceWarningDays",
+"558": "DeviceScheduledUpdateCheck",
+"559": "KerberosEnabled",
+"56": "DefaultGeolocationSetting",
+"560": "KerberosRememberPasswordEnabled",
+"561": "KerberosAddAccountsAllowed",
+"562": "KerberosAccounts",
+"563": "StickyKeysEnabled",
+"565": "AppRecommendationZeroStateEnabled",
+"566": "BrowserSwitcherExternalGreylistUrl",
+"567": "PolicyDictionaryMultipleSourceMergeList",
+"568": "CommandLineFlagSecurityWarningsEnabled",
+"569": "RelaunchHeadsUpPeriod",
+"57": "Disable3DAPIs",
+"570": "StartupBrowserWindowLaunchSuppressed",
+"572": "UserFeedbackAllowed",
+"573": "DevicePowerwashAllowed",
+"574": "ExternalPrintServers",
+"575": "SelectToSpeakEnabled",
+"576": "BrowserGuestModeEnforced",
+"577": "BuiltinCertificateVerifierEnabled",
+"578": "CrostiniRootAccessAllowed",
+"579": "VmManagementCliAllowed",
+"58": "PolicyRefreshRate",
+"581": "CACertificateManagementAllowed",
+"582": "PasswordLeakDetectionEnabled",
+"583": "LockScreenMediaPlaybackEnabled",
+"584": "DnsOverHttpsMode",
+"586": "PolicyAtomicGroupsEnabled",
+"594": "DictationEnabled",
+"595": "KeyboardFocusHighlightEnabled",
+"596": "CursorHighlightEnabled",
+"597": "CaretHighlightEnabled",
+"598": "MonoAudioEnabled",
+"599": "AutoclickEnabled",
+"6": "ApplicationLocaleValue",
+"600": "RendererCodeIntegrityEnabled",
+"601": "DeviceLoginScreenLargeCursorEnabled",
+"603": "HSTSPolicyBypassList",
+"604": "ReportDeviceOsUpdateStatus",
+"605": "DeviceLoginScreenWebUsbAllowDevicesForUrls",
+"606": "AllowSyncXHRInPageDismissal",
+"607": "DeviceLoginScreenSpokenFeedbackEnabled",
+"608": "DeviceLoginScreenHighContrastEnabled",
+"609": "DeviceLoginScreenVirtualKeyboardEnabled",
+"610": "CloudExtensionRequestEnabled",
+"611": "DeviceLoginScreenSystemInfoEnforced",
+"612": "SharedClipboardEnabled",
+"613": "DeviceLoginScreenDictationEnabled",
+"614": "DeviceLoginScreenSelectToSpeakEnabled",
+"615": "DeviceLoginScreenCursorHighlightEnabled",
+"616": "DeviceLoginScreenCaretHighlightEnabled",
+"617": "DeviceLoginScreenMonoAudioEnabled",
+"618": "TotalMemoryLimitMb",
+"619": "DeviceLoginScreenAutoclickEnabled",
+"620": "DeviceLoginScreenStickyKeysEnabled",
+"621": "DeviceLoginScreenKeyboardFocusHighlightEnabled",
+"622": "ShelfAlignment",
+"623": "PrintingAllowedBackgroundGraphicsModes",
+"624": "PrintingBackgroundGraphicsDefault",
+"625": "LegacySameSiteCookieBehaviorEnabled",
+"626": "LegacySameSiteCookieBehaviorEnabledForDomainList",
+"627": "PrintJobHistoryExpirationPeriod",
+"628": "TLS13HardeningForLocalAnchorsEnabled",
+"629": "AudioSandboxEnabled",
+"63": "ChromeOsLockOnIdleSuspend",
+"630": "DeviceLoginScreenScreenMagnifierType",
+"631": "CorsMitigationList",
+"632": "CorsLegacyModeEnabled",
+"633": "ExternalPrintServersWhitelist",
+"634": "ExternalProtocolDialogShowAlwaysOpenCheckbox",
+"635": "DefaultInsecureContentSetting",
+"636": "InsecureContentAllowedForUrls",
+"637": "InsecureContentBlockedForUrls",
+"638": "DeviceWebBasedAttestationAllowedUrls",
+"639": "BlockExternalExtensions",
+"64": "InstantEnabled",
+"640": "DeviceShowNumericKeyboardForPassword",
+"641": "CrostiniAnsiblePlaybook",
+"642": "WebRtcLocalIpsAllowedUrls",
+"643": "PerAppTimeLimits",
+"644": "DnsOverHttpsTemplates",
+"645": "GloballyScopeHTTPAuthCacheEnabled",
+"646": "WebComponentsV0Enabled",
+"647": "ClickToCallEnabled",
+"648": "DeviceLoginScreenShowOptionsInSystemTrayMenu",
+"649": "PrinterTypeDenyList",
+"65": "UserDataDir",
+"650": "ForceLegacyDefaultReferrerPolicy",
+"651": "SyncTypesListDisabled",
+"652": "AmbientAuthenticationInPrivateModesEnabled",
+"653": "PaymentMethodQueryEnabled",
+"654": "StricterMixedContentTreatmentEnabled",
+"655": "NTPCustomBackgroundEnabled",
+"656": "DNSInterceptionChecksEnabled",
+"657": "PrimaryMouseButtonSwitch",
+"658": "ReportDeviceCpuInfo",
+"659": "DeviceLoginScreenPrimaryMouseButtonSwitch",
+"66": "DownloadDirectory",
+"660": "PerAppTimeLimitsWhitelist",
+"661": "AccessibilityShortcutsEnabled",
+"662": "ReportDeviceGraphicsStatus",
+"663": "DeviceLoginScreenAccessibilityShortcutsEnabled",
+"664": "LocalDiscoveryEnabled",
+"665": "ChromeVariations",
+"666": "PrintingAPIExtensionsWhitelist",
+"667": "ReportDeviceCrashReportInfo",
+"668": "ScreenCaptureAllowed",
+"669": "AdvancedProtectionDeepScanningEnabled",
+"67": "ClearSiteDataOnExit",
+"672": "DeviceMinimumVersion",
+"673": "ReportDeviceTimezoneInfo",
+"674": "SystemProxySettings",
+"675": "UserDataSnapshotRetentionLimit",
+"676": "DeviceChromeVariations",
+"677": "NativeWindowOcclusionEnabled",
+"678": "DeviceLoginScreenPrivacyScreenEnabled",
+"679": "PrivacyScreenEnabled",
+"68": "DisablePluginFinder",
+"680": "AllowNativeNotifications",
+"681": "ForceLogoutUnauthenticatedUserEnabled",
+"682": "RequiredClientCertificateForUser",
+"683": "RequiredClientCertificateForDevice",
+"684": "ReportDeviceMemoryInfo",
+"685": "UseLegacyFormControls",
+"686": "SafeBrowsingProtectionLevel",
+"687": "AdvancedProtectionAllowed",
+"688": "ReportDeviceBacklightInfo",
+"689": "ScrollToTextFragmentEnabled",
+"69": "CookiesBlockedForUrls",
+"690": "ManagedGuestSessionAutoLaunchNotificationReduced",
+"691": "SystemFeaturesDisableList",
+"692": "CrostiniArcAdbSideloadingAllowed",
+"693": "FloatingAccessibilityMenuEnabled",
+"694": "PrintingMaxSheetsAllowed",
+"695": "OnFileAttachedEnterpriseConnector",
+"696": "VoiceInteractionQuickAnswersEnabled",
+"697": "DeviceCrostiniArcAdbSideloadingAllowed",
+"698": "OnFileDownloadedEnterpriseConnector",
+"699": "OnBulkDataEntryEnterpriseConnector",
+"7": "AlternateErrorPagesEnabled",
+"70": "CookiesSessionOnlyForUrls",
+"700": "PluginVmUserId",
+"701": "OnSecurityEventEnterpriseConnector",
+"702": "AutoOpenFileTypes",
+"703": "LoginDisplayPasswordButtonEnabled",
+"704": "ReportDeviceAppInfo",
+"705": "AccessibilityImageLabelsEnabled",
+"706": "AppCacheForceEnabled",
+"707": "UserPluginVmAllowed",
+"708": "PrintRasterizationMode",
+"709": "AutoOpenAllowedForURLs",
+"71": "ImagesAllowedForUrls",
+"710": "ReportDeviceBluetoothInfo",
+"711": "ReportDeviceFanInfo",
+"712": "ReportDeviceVpdInfo",
+"713": "EnableExperimentalPolicies",
+"714": "PluginVmDataCollectionAllowed",
+"715": "IntensiveWakeUpThrottlingEnabled",
+"716": "DeviceMinimumVersionAueMessage",
+"717": "DefaultSearchProviderContextMenuAccessAllowed",
+"718": "CrostiniPortForwardingAllowed",
+"719": "VirtualKeyboardFeatures",
+"72": "ImagesBlockedForUrls",
+"720": "PinUnlockAutosubmitEnabled",
+"721": "LockScreenReauthenticationEnabled",
+"722": "DeletePrintJobHistoryAllowed",
+"723": "EmojiSuggestionEnabled",
+"724": "AutoLaunchProtocolsFromOrigins",
+"725": "ManagedGuestSessionPrivacyWarningsEnabled",
+"726": "PluginVmRequiredFreeDiskSpace",
+"727": "UserAgentClientHintsEnabled",
+"728": "SuggestedContentEnabled",
+"729": "ExtensionInstallEventLoggingEnabled",
+"73": "JavaScriptAllowedForUrls",
+"730": "EnterpriseRealTimeUrlCheckMode",
+"731": "AssistantOnboardingMode",
+"732": "DeviceExternalPrintServers",
+"733": "DeviceExternalPrintServersAllowlist",
+"734": "SafeBrowsingAllowlistDomains",
+"735": "DevicePrintersAccessMode",
+"736": "DevicePrintersBlocklist",
+"737": "DevicePrintersAllowlist",
+"738": "URLBlocklist",
+"739": "URLAllowlist",
+"74": "JavaScriptBlockedForUrls",
+"740": "ExtensionInstallAllowlist",
+"741": "ShowFullUrlsInAddressBar",
+"742": "ExtensionInstallBlocklist",
+"743": "ReportDeviceSystemInfo",
+"744": "AutoplayAllowlist",
+"745": "DevicePrinters",
+"746": "NativeMessagingBlocklist",
+"747": "NativeMessagingAllowlist",
+"748": "AuthNegotiateDelegateAllowlist",
+"749": "AuthServerAllowlist",
+"75": "PluginsAllowedForUrls",
+"750": "InsecureFormsWarningsEnabled",
+"751": "SpellcheckLanguageBlocklist",
+"752": "ExternalPrintServersAllowlist",
+"753": "DefaultSerialGuardSetting",
+"754": "SerialAskForUrls",
+"755": "SerialBlockedForUrls",
+"756": "DefaultSensorsSetting",
+"757": "SensorsAllowedForUrls",
+"758": "SensorsBlockedForUrls",
+"759": "DeviceChannelDowngradeBehavior",
+"76": "PluginsBlockedForUrls",
+"760": "BackForwardCacheEnabled",
+"761": "NoteTakingAppsLockScreenAllowlist",
+"762": "CCTToSDialogEnabled",
+"763": "NearbyShareAllowed",
+"764": "PerAppTimeLimitsAllowlist",
+"765": "DeviceShowLowDiskSpaceNotification",
+"766": "DeviceUserAllowlist",
+"767": "UsbDetachableAllowlist",
+"768": "InsecurePrivateNetworkRequestsAllowed",
+"769": "InsecurePrivateNetworkRequestsAllowedForUrls",
+"77": "PopupsAllowedForUrls",
+"770": "UserPrintersAllowed",
+"771": "Printers",
+"772": "PrintersBulkConfiguration",
+"773": "DeviceReleaseLtsTag",
+"774": "PrintersBulkAccessMode",
+"775": "DefaultFileSystemReadGuardSetting",
+"776": "DefaultFileSystemWriteGuardSetting",
+"777": "FileSystemReadAskForUrls",
+"778": "FileSystemReadBlockedForUrls",
+"779": "FileSystemWriteAskForUrls",
+"78": "PopupsBlockedForUrls",
+"780": "FileSystemWriteBlockedForUrls",
+"781": "PrintersBulkBlocklist",
+"782": "PrintersBulkAllowlist",
+"783": "CloudPrintWarningsSuppressed",
+"784": "LookalikeWarningAllowlistDomains",
+"785": "PrintingAPIExtensionsAllowlist",
+"786": "QuickUnlockModeAllowlist",
+"787": "AttestationExtensionAllowlist",
+"788": "DataLeakPreventionRulesList",
+"789": "WebRtcAllowLegacyTLSProtocols",
+"79": "CookiesAllowedForUrls",
+"790": "MediaRecommendationsEnabled",
+"791": "DeviceFamilyLinkAccountsAllowed",
+"792": "EduCoexistenceToSVersion",
+"793": "BrowsingDataLifetime",
+"794": "IntranetRedirectBehavior",
+"795": "LacrosAllowed",
+"796": "DeviceArcDataSnapshotHours",
+"797": "PhoneHubAllowed",
+"798": "PhoneHubNotificationsAllowed",
+"799": "PhoneHubTaskContinuationAllowed",
+"8": "SearchSuggestEnabled",
+"80": "EnabledPlugins",
+"800": "WifiSyncAndroidAllowed",
+"801": "SecurityTokenSessionBehavior",
+"802": "SecurityTokenSessionNotificationSeconds",
+"803": "TosDialogBehavior",
+"804": "TargetBlankImpliesNoOpener",
+"805": "RemoteAccessHostEnableUserInterface",
+"806": "FullscreenAlertEnabled",
+"807": "NTPCardsVisible",
+"808": "BasicAuthOverHttpEnabled",
+"809": "SystemFeaturesDisableMode",
+"81": "DisabledPluginsExceptions",
+"810": "IntegratedWebAuthenticationAllowed",
+"811": "ClearBrowsingDataOnExitList",
+"812": "ProfilePickerOnStartupAvailability",
+"813": "SigninInterceptionEnabled",
+"814": "RemoteAccessHostAllowRemoteAccessConnections",
+"815": "ManagedConfigurationPerOrigin",
+"816": "RemoteAccessHostMaximumSessionDurationMinutes",
+"817": "EnableDeprecatedPrivetPrinting",
+"818": "BrowserLabsEnabled",
+"819": "WindowOcclusionEnabled",
+"82": "TranslateEnabled",
+"820": "DeviceAllowMGSToStoreDisplayProperties",
+"821": "SSLErrorOverrideAllowedForOrigins",
+"822": "WebXRImmersiveArEnabled",
+"823": "GaiaOfflineSigninTimeLimitDays",
+"825": "DeviceSystemWideTracingEnabled",
+"826": "WebAppSettings",
+"827": "DevicePciPeripheralDataAccessEnabled",
+"828": "ContextAwareAccessSignalsAllowlist",
+"829": "FetchKeepaliveDurationSecondsOnShutdown",
+"83": "AllowOutdatedPlugins",
+"830": "AllowSystemNotifications",
+"831": "SuppressDifferentOriginSubframeDialogs",
+"832": "DeviceBorealisAllowed",
+"833": "UserBorealisAllowed",
+"834": "LacrosSecondaryProfilesAllowed",
+"835": "GaiaLockScreenOfflineSigninTimeLimitDays",
+"836": "SamlLockScreenOfflineSigninTimeLimitDays",
+"837": "ReportDevicePrintJobs",
+"838": "AudioProcessHighPriorityEnabled",
+"839": "SerialAllowAllPortsForUrls",
+"84": "BookmarkBarEnabled",
+"840": "SerialAllowUsbDevicesForUrls",
+"841": "ForcedLanguages",
+"842": "BrowserThemeColor",
+"843": "CECPQ2Enabled",
+"844": "HeadlessMode",
+"845": "WebRtcIPHandling",
+"846": "PdfAnnotationsEnabled",
+"847": "DefaultFileHandlingGuardSetting",
+"848": "FileHandlingAllowedForUrls",
+"849": "FileHandlingBlockedForUrls",
+"85": "EditBookmarksEnabled",
+"850": "DeviceAllowedBluetoothServices",
+"851": "ExplicitlyAllowedNetworkPorts",
+"852": "DeviceDebugPacketCaptureAllowed",
+"853": "SuggestLogoutAfterClosingLastWindow",
+"854": "SharedArrayBufferUnrestrictedAccessAllowed",
+"855": "LensCameraAssistedSearchEnabled",
+"856": "RelaunchWindow",
+"857": "LacrosAvailability",
+"858": "DataLeakPreventionReportingEnabled",
+"859": "AdditionalDnsQueryTypesEnabled",
+"86": "AllowFileSelectionDialogs",
+"860": "TripleDESEnabled",
+"861": "CloudUserPolicyMerge",
+"862": "ManagedAccountsSigninRestriction",
+"863": "LockIconInAddressBarEnabled",
+"864": "DeviceScheduledReboot",
+"865": "ReportDeviceLoginLogout",
+"866": "RemoteDebuggingAllowed",
+"867": "DeviceAttributesAllowedForOrigins",
+"868": "BrowserSwitcherParsingMode",
+"869": "DefaultJavaScriptJitSetting",
+"87": "DisabledSchemes",
+"870": "JavaScriptJitAllowedForSites",
+"871": "JavaScriptJitBlockedForSites",
+"872": "HttpsOnlyMode",
+"873": "DesktopSharingHubEnabled",
+"875": "ReportDeviceAudioStatus",
+"876": "DeviceHostnameUserConfigurable",
+"877": "ReportDeviceNetworkConfiguration",
+"878": "ReportDeviceNetworkStatus",
+"879": "DataLeakPreventionClipboardCheckSizeLimit",
+"88": "AlwaysAuthorizePlugins",
+"880": "CrossOriginWebAssemblyModuleSharingEnabled",
+"881": "RestrictedManagedGuestSessionExtensionCleanupExemptList",
+"882": "DisplayCapturePermissionsPolicyEnabled",
+"883": "ScreenCaptureAllowedByOrigins",
+"884": "WindowCaptureAllowedByOrigins",
+"885": "TabCaptureAllowedByOrigins",
+"886": "SameOriginTabCaptureAllowedByOrigins",
+"887": "AssistantVoiceMatchEnabledDuringOobe",
+"888": "LensRegionSearchEnabled",
+"889": "ArcAppToWebAppSharingEnabled",
+"890": "EnhancedNetworkVoicesInSelectToSpeakAllowed",
+"891": "PrintPdfAsImageAvailability",
+"892": "PrintRasterizePdfDpi",
+"893": "DeviceTargetVersionSelector",
+"894": "ChromeAppsEnabled",
+"895": "BrowserLegacyExtensionPointsBlocked",
+"896": "DeviceRestrictedManagedGuestSessionEnabled",
+"897": "PrintPostScriptMode",
+"898": "PrintPdfAsImageDefault",
+"899": "FullRestoreEnabled",
+"9": "DnsPrefetchingEnabled",
+"90": "DiskCacheDir",
+"900": "GhostWindowEnabled",
+"901": "CloudUserPolicyOverridesCloudMachinePolicy",
+"902": "ReportDeviceSecurityStatus",
+"903": "EnableDeviceGranularReporting",
+"904": "WebSQLInThirdPartyContextEnabled",
+"905": "U2fSecurityKeyApiEnabled",
+"906": "DeviceLoginScreenPromptOnMultipleMatchingCertificates",
+"907": "PromptOnMultipleMatchingCertificates",
+"908": "SideSearchEnabled",
+"909": "AccessCodeCastEnabled",
+"91": "AllowCrossOriginAuthPrompt",
+"910": "AccessCodeCastDeviceDuration",
+"911": "NetworkServiceSandboxEnabled",
+"912": "DeskTemplatesEnabled",
+"913": "PreconfiguredDeskTemplates",
+"914": "FastPairEnabled",
+"915": "SandboxExternalProtocolBlocked",
+"916": "ReportDeviceNetworkTelemetryCollectionRateMs",
+"917": "ReportDeviceNetworkTelemetryEventCheckingRateMs",
+"918": "KioskCRXManifestUpdateURLIgnored",
+"919": "QuickAnswersEnabled",
+"92": "DevicePolicyRefreshRate",
+"920": "QuickAnswersDefinitionEnabled",
+"921": "QuickAnswersTranslationEnabled",
+"922": "QuickAnswersUnitConversionEnabled",
+"923": "CORSNonWildcardRequestHeadersSupport",
+"924": "RemoteAccessHostClipboardSizeBytes",
+"925": "RemoteAccessHostAllowRemoteSupportConnections",
+"926": "UserAgentClientHintsGREASEUpdateEnabled",
+"927": "DeviceI18nShortcutsEnabled",
+"928": "HistoryClustersVisible",
+"929": "ChromadToCloudMigrationEnabled",
+"93": "ChromeOsReleaseChannel",
+"930": "CopyPreventionSettings",
+"931": "ReportDeviceAudioStatusCheckingRateMs",
+"932": "KeepFullscreenWithoutNotificationUrlAllowList",
+"933": "OnPrintEnterpriseConnector",
+"934": "UserAgentReduction",
+"935": "OriginAgentClusterDefaultEnabled",
+"937": "ProjectorEnabled",
+"938": "PhoneHubCameraRollAllowed",
+"939": "EcheAllowed",
+"94": "MaxConnectionsPerProxy",
+"940": "DeviceKeylockerForStorageEncryptionEnabled",
+"941": "ReportCRDSessions",
+"942": "DeviceRunAutomaticCleanupOnLogin",
+"943": "NTPMiddleSlotAnnouncementVisible",
+"944": "CloudProfileReportingEnabled",
+"945": "DefaultWebHidGuardSetting",
+"946": "WebHidAskForUrls",
+"947": "WebHidBlockedForUrls",
+"948": "PasswordDismissCompromisedAlertEnabled",
+"949": "ExemptDomainFileTypePairsFromFileTypeDownloadWarnings",
+"95": "IncognitoModeAvailability",
+"950": "FirstPartySetsEnabled",
+"951": "ForceMajorVersionToMinorPositionInUserAgent",
+"952": "AllHttpAuthSchemesAllowedForOrigins",
+"953": "DefaultWindowPlacementSetting",
+"954": "ReportDevicePeripherals",
+"955": "WebHidAllowAllDevicesForUrls",
+"956": "WebHidAllowDevicesForUrls",
+"957": "WebHidAllowDevicesWithHidUsagesForUrls",
+"958": "SecondaryGoogleAccountUsage",
+"959": "DeviceEncryptedReportingPipelineEnabled",
+"96": "RemoteAccessClientFirewallTraversal",
+"961": "FloatingWorkspaceEnabled",
+"962": "WindowPlacementAllowedForUrls",
+"963": "WindowPlacementBlockedForUrls",
+"964": "CloudReportingUploadFrequency",
+"965": "OptimizationGuideFetchingEnabled",
+"966": "WebAuthnFactors",
+"967": "WebAuthenticationRemoteProxiedRequestsAllowed",
+"968": "WebSQLAccess",
+"969": "SetTimeoutWithout1MsClampEnabled",
+"97": "RemoteAccessHostFirewallTraversal",
+"970": "AllowChromeDataInBackups",
+"971": "FirstPartySetsOverrides",
+"972": "DownloadBubbleEnabled",
+"973": "DevicePowerAdaptiveChargingEnabled",
+"974": "GetDisplayMediaSetSelectAllScreensAllowedForUrls",
+"975": "WarnBeforeQuittingEnabled",
+"976": "SystemTerminalSshAllowed",
+"977": "InsightsExtensionEnabled",
+"978": "EnterpriseAuthenticationAppLinkPolicy",
+"979": "DefaultLocalFontsSetting",
+"98": "HideWebStorePromo",
+"980": "LocalFontsAllowedForUrls",
+"981": "LocalFontsBlockedForUrls",
+"982": "ProjectorDogfoodForFamilyLinkEnabled",
+"983": "UrlParamFilterEnabled",
+"985": "DefaultClipboardSetting",
+"986": "ClipboardAllowedForUrls",
+"987": "ClipboardBlockedForUrls",
+"988": "OsColorMode",
+"989": "RendererAppContainerEnabled",
+"99": "ImportBookmarks",
+"990": "UnthrottledNestedTimeoutEnabled",
+"991": "PolicyScopeDetection",
+"992": "EventPathEnabled",
+"993": "OnFileTransferEnterpriseConnector",
+"994": "ChromeRootStoreEnabled",
+"995": "WebSQLNonSecureContextEnabled",
+"996": "IdleTimeout",
+"997": "NewWindowsInKioskAllowed",
+"998": "EncryptedClientHelloEnabled",
+"999": "DeviceAutofillSAMLUsername"
+},
+"saved": "2026-09-27T15:20:34"
+}
