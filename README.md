@@ -11,7 +11,7 @@ Works with the on-disk DM policy blob and (optionally) injects local changes so 
 - `python3`
 - For inject/apply: `cryptography`
 - `iptables` / `ip6tables` for `dm-block` / `apply`
-- Root for **VT2**
+- Root shell (VT2 root needs no sudo; chronos needs sudo)
 
 If `python3` or base tools are missing then try:
 
@@ -21,12 +21,13 @@ sudo dev_install
 
 ## Quick start
 
+Open a root shell (VT2, `Ctrl+Alt+F2`, log in as `root`), then paste:
+
 ```bash
-# curl, save and run (do not run directly from curl unless using args "curl -fsSL <url> | python -" )
-curl -fsSL -o /usr/local/bin/dm_policy_tool https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && chmod +x /usr/local/bin/dm_policy_tool && dm_policy_tool
+mkdir -p /usr/local/bin && curl -fsSL -o /usr/local/bin/dm_policy_tool https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py && chmod +x /usr/local/bin/dm_policy_tool && /usr/local/bin/dm_policy_tool
 ```
-(can be run with as a command after putting it there)
-(No args opens the interactive menu.)
+
+That installs it and opens the menu. Next time, just type `dm_policy_tool`. Not on a root shell? Put `sudo` in front. Re-run the line above to update.
 
 ## Common commands
 
@@ -95,7 +96,11 @@ dm_policy_tool verify-mapping --export /path/to/chrome-policy-export.json
 dm_policy_tool fix-mapping FIELDNAME CorrectPolicyName
 ```
 
-Policies with yaml id > 1040 live in chunked sub-messages and are not supported for inject.
+If chromium.googlesource.com is down (503), `refresh-mapping` falls back to `policy_mapping_fallback.json` in this repo automatically. That file is a saved copy, not live, so refresh and re-push it occasionally:
+
+```bash
+dm_policy_tool refresh-mapping --save-fallback policy_mapping_fallback.json
+```
 
 ## Safety notes
 
