@@ -1114,6 +1114,17 @@ def cmd_inject(args):
         try:
             parsed = json.loads(v)
         except json.JSONDecodeError:
+            loc = _PN2F.get(k)
+            cur_kind = None
+            if loc is not None:
+                raw, err = _cs_field(loc)
+                if err != "no_live_policy":
+                    cur_kind, _ = _dec_pol(raw)
+            if cur_kind == 'list':
+                print("ERROR: %s is a list, but '%s' isn't valid JSON "
+                      "(use [\"a\", \"b\"], double quotes, no trailing comma)." % (k, v),
+                      file=sys.stderr)
+                sys.exit(1)
             parsed = v
         overrides_json[k] = parsed
 
@@ -1518,13 +1529,22 @@ def _store_pol_gdbus(descriptor_bytes, policy_bytes):
 
 
 def _restart_chrome(timeout=20):
-    import subprocess
+    import signal
 
     old_pid = _chrome_pid()
     if old_pid is None:
         print("No live Chrome browser process found.", file=sys.stderr)
         return False
-    subprocess.run(["kill", "-TERM", str(old_pid)])
+    try:
+        os.kill(old_pid, signal.SIGTERM)
+    except PermissionError:
+        print("ERROR: not allowed to signal the Chrome process (pid %d, "
+              "euid %d). Run this tool as root, or use `sign-out` instead."
+              % (old_pid, os.geteuid()), file=sys.stderr)
+        return False
+    except ProcessLookupError:
+        print("Chrome process disappeared before it could be restarted.", file=sys.stderr)
+        return False
     deadline = time.time() + timeout
     while time.time() < deadline:
         new_pid = _chrome_pid()
@@ -2398,8 +2418,15 @@ def _browse():
                         unset=None, force=True, new_key=False))
             else:
                 _cls()
-                default = "" if kind == 'unset' else str(val)
+                if kind == 'unset':
+                    default = ""
+                elif kind == 'list':
+                    default = json.dumps(val)
+                else:
+                    default = str(val)
                 print("Editing %s:" % _bold(name))
+                if kind == 'list':
+                    print(_DIM + 'list: keep it as a JSON array, e.g. ["a", "b"]' + _RESET)
                 _cls_end()
                 new_val = _eline("> ", default)
                 if not new_val:
