@@ -9,6 +9,7 @@ Made By: Aro_Moon / Nmsjayden
 """
 
 import argparse
+import atexit
 import contextlib
 import hashlib
 import json
@@ -19,11 +20,6 @@ import sys
 import time
 import urllib.parse
 
-try:
-    import readline
-    _HAS_RL = True
-except ImportError:
-    _HAS_RL = False
 from pathlib import Path
 
 def _drain_stdin():
@@ -44,24 +40,69 @@ def _drain_stdin():
         chunks.append(chunk)
     return b"".join(chunks).decode(errors="ignore")
 
-def _eline(prompt, current):
-    pending = _drain_stdin()
-    if pending:
-        if "\r" in pending or "\n" in pending:
-            line = pending.replace("\r", "\n").split("\n", 1)[0].strip()
-            sys.stdout.write("%s%s\n" % (prompt, line))
-            sys.stdout.flush()
-            return line if line else current
-        current = pending
-    if _HAS_RL == False:
-        typed = input("%s[%s] " % (prompt, current)).strip()
-        return typed if typed else current
-    readline.set_startup_hook(lambda: readline.insert_text(current))
-    try:
-        return input(prompt).strip()
-    finally:
-        readline.set_startup_hook(None)
+_ESC_CANCEL = object()
 
+def _read_line_raw(prefill=""):
+    # handles ESC cancel and backspace ourselves
+    _enter_raw()
+    import select
+    fd = sys.stdin.fileno()
+    buf = list(prefill)
+    sys.stdout.write(prefill)
+    sys.stdout.flush()
+    while True:
+        ch = os.read(fd, 1).decode(errors="ignore")
+        if ch == '\x1b':
+            seq = ""
+            while len(seq) < 2:
+                r, _, _ = select.select([fd], [], [], 0.01)
+                if not r:
+                    break
+                seq += os.read(fd, 2 - len(seq)).decode(errors="ignore")
+            if seq == "":
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                return _ESC_CANCEL
+            continue
+        if ch in ('\r', '\n'):
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(buf).strip()
+        if ch in ('\x7f', '\x08'):
+            if buf:
+                buf.pop()
+                sys.stdout.write("\b \b")
+                sys.stdout.flush()
+            continue
+        if ch == '\x03':
+            raise KeyboardInterrupt
+        if ch == '\x04':
+            raise EOFError
+        if ch and ch.isprintable():
+            buf.append(ch)
+            sys.stdout.write(ch)
+            sys.stdout.flush()
+
+def _eline(prompt, current):
+    if not sys.stdin.isatty():
+        typed = input(prompt).strip()
+        return typed if typed else current
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    result = _read_line_raw(prefill=current)
+    if result is _ESC_CANCEL:
+        return current
+    return result if result else current
+
+def _confirm(prompt):
+    if not sys.stdin.isatty():
+        return input(prompt).strip().lower() == 'y'
+    sys.stdout.write(prompt)
+    sys.stdout.flush()
+    result = _read_line_raw()
+    if result is _ESC_CANCEL:
+        return False
+    return result.lower() == 'y'
 
 _COLOR = sys.stdout.isatty()
 
@@ -75,13 +116,9 @@ _BOLD    = "\033[1m" if _COLOR else ""
 _DIM     = "\033[2m" if _COLOR else ""
 _REVERSE = "\033[7m" if _COLOR else ""
 _RED     = "\033[31m" if _COLOR else ""
-_GREEN   = "\033[32m" if _COLOR else ""
 _YELLOW  = "\033[33m" if _COLOR else ""
-_BLUE    = "\033[34m" if _COLOR else ""
-_MAGENTA = "\033[35m" if _COLOR else ""
 _CYAN    = "\033[36m" if _COLOR else ""
 _WHITE   = "\033[37m" if _COLOR else ""
-_BRED     = "\033[91m" if _COLOR else ""
 _BGREEN   = "\033[92m" if _COLOR else ""
 _BYELLOW  = "\033[93m" if _COLOR else ""
 _BBLUE    = "\033[94m" if _COLOR else ""
@@ -92,39 +129,70 @@ _BWHITE   = "\033[97m" if _COLOR else ""
 def _bold(t): return _color(t, "1")
 def _dim(t): return _color(t, "2")
 
-def _key():
-    # single keypress, arrows etc
-    if not sys.stdin.isatty():
-        return input().strip() or "ENTER"
+_RAW_OLD_ATTRS = None
+
+def _enter_raw():
+    # stay in raw mode for the whole interactive session
+    global _RAW_OLD_ATTRS
+    if not sys.stdin.isatty() or _RAW_OLD_ATTRS is not None:
+        return
     import termios
     import tty
-    import select
     fd = sys.stdin.fileno()
-    old = termios.tcgetattr(fd)
-    try:
-        tty.setraw(fd, termios.TCSANOW)
-        attrs = termios.tcgetattr(fd)
-        attrs[1] |= (termios.OPOST | termios.ONLCR)
-        termios.tcsetattr(fd, termios.TCSANOW, attrs)
-        while True:
-            ch = os.read(fd, 1).decode(errors="ignore")
-            if ch == '\x1b':
-                seq = os.read(fd, 2).decode(errors="ignore")
-                result = {'[A': 'UP', '[B': 'DOWN', '[C': 'RIGHT', '[D': 'LEFT'}.get(seq)
-                if result:
-                    return result
-                while select.select([fd], [], [], 0)[0]:
-                    os.read(fd, 1)
-                continue  # not an arrow key, just noise, keep waiting
-            if ch in ('\r', '\n'):
-                return 'ENTER'
-            if ch in ('\x7f', '\x08'):
-                return 'BACKSPACE'
-            if ch == '\x03':  # Ctrl-C
-                raise KeyboardInterrupt
-            return ch
-    finally:
-        termios.tcsetattr(fd, termios.TCSADRAIN, old)
+    _RAW_OLD_ATTRS = termios.tcgetattr(fd)
+    tty.setraw(fd, termios.TCSANOW)
+    attrs = termios.tcgetattr(fd)
+    attrs[1] |= (termios.OPOST | termios.ONLCR)
+    termios.tcsetattr(fd, termios.TCSANOW, attrs)
+
+def _exit_raw():
+    global _RAW_OLD_ATTRS
+    if _RAW_OLD_ATTRS is None:
+        return
+    import termios
+    termios.tcsetattr(sys.stdin.fileno(), termios.TCSADRAIN, _RAW_OLD_ATTRS)
+    _RAW_OLD_ATTRS = None
+
+atexit.register(_exit_raw)
+
+_real_input = input
+
+def input(prompt=""):
+    # drop raw mode before line-buffered reads
+    _exit_raw()
+    return _real_input(prompt)
+
+def _key():
+    # single keypress (arrows, enter, esc, ...)
+    if not sys.stdin.isatty():
+        return input().strip() or "ENTER"
+    import select
+    _enter_raw()
+    fd = sys.stdin.fileno()
+    while True:
+        ch = os.read(fd, 1).decode(errors="ignore")
+        if ch == '\x1b':
+            seq = ""
+            while len(seq) < 2:
+                r, _, _ = select.select([fd], [], [], 0.01)
+                if not r:
+                    break
+                seq += os.read(fd, 2 - len(seq)).decode(errors="ignore")
+            if seq == "":
+                return 'ESC'
+            result = {'[A': 'UP', '[B': 'DOWN', '[C': 'RIGHT', '[D': 'LEFT'}.get(seq)
+            if result:
+                return result
+            while select.select([fd], [], [], 0)[0]:
+                os.read(fd, 1)
+            continue
+        if ch in ('\r', '\n'):
+            return 'ENTER'
+        if ch in ('\x7f', '\x08'):
+            return 'BACKSPACE'
+        if ch == '\x03':
+            raise KeyboardInterrupt
+        return ch
 
 def _menu(title, options, extra_lines=None, subtitle=None):
     items = [o if isinstance(o, tuple) else (o, _BWHITE) for o in options]
@@ -154,7 +222,7 @@ def _menu(title, options, extra_lines=None, subtitle=None):
             for line in extra_lines:
                 print("  " + line)
         print("\n  [%s] move   [%s] select   [%s] back" % (
-              "up/down", "enter", "q"))
+              "up/down", "enter", "esc"))
         _cls_end()
 
         key = _key()
@@ -164,13 +232,12 @@ def _menu(title, options, extra_lines=None, subtitle=None):
             sel = (sel + 1) % n
         elif key == 'ENTER':
             return sel
-        elif key in ('q', 'Q'):
+        elif key == 'ESC':
             return None
         elif isinstance(key, str) and key.isdigit():
             idx = int(key) - 1
             if 0 <= idx < n:
                 sel = idx
-
 
 def _pick_state_dir():
     env = os.environ.get("DM_POLICY_STATE")
@@ -189,29 +256,24 @@ def _pick_state_dir():
             continue
     return cands[0]
 
-
 def _mkdir(p):
     try:
         p.mkdir(parents=True, exist_ok=True)
     except OSError:
         pass
 
-
 STATE_DIR       = _pick_state_dir()
 PROFILES_DIR    = STATE_DIR.joinpath("profiles")
 SNAPSHOTS_DIR   = STATE_DIR.joinpath("managed-user")
 MANAGED_DIR     = Path('/etc/opt/chrome/policies/managed')
-RECOMMENDED_DIR = Path('/etc/opt/chrome/policies/recommended')
 
 _SELECTED_USER = None
 _NOTED_USERS = False
-
 
 def _read_dbus_str(body, pos):
     pos += -pos % 4
     ln = int.from_bytes(body[pos:pos + 4], "little")
     return body[pos + 4:pos + 4 + ln].decode(errors="replace"), pos + 5 + ln
-
 
 def _signed_in_users():
     try:
@@ -227,7 +289,6 @@ def _signed_in_users():
     except Exception:
         return []
 
-
 def _primary_user():
     try:
         body = _dbus_call("RetrievePrimarySession", "", [])["body"]
@@ -236,7 +297,6 @@ def _primary_user():
         return email, sanitized
     except Exception:
         return None, None
-
 
 def _user_dir():
     global _NOTED_USERS
@@ -265,7 +325,6 @@ def _user_dir():
             if (d / "policy" / "policy").exists():
                 return d / "policy"
     return None
-
 
 def _live_pol():
     d = _user_dir()
@@ -313,19 +372,19 @@ def _chrome_plat():
         pass
     return "Linux,CrOS,%s|%s,%s|%s" % (board, arch, hwid, version)
 
-PFR_TYPE    = 1   # string
-PFR_SIG = 3   # enum: 2 = SHA256_RSA
-PFR_PKV = 4   # int32
+PFR_TYPE    = 1
+PFR_SIG = 3   # 2 = SHA256_RSA
+PFR_PKV = 4
 DMR_USER   = 3
-DMR_REQ    = 3   # DevicePolicyRequest.requests[0]
+DMR_REQ    = 3
 DMRESP_USER   = 5
 DPOL_FETCH    = 3
 
-DM_SERVER_HOST = 'm.google.com'  # host in DM_ENDPOINT
+DM_SERVER_HOST = 'm.google.com'
 
-SENSITIVE_FIELDS = {3, 8, 10}  # token, device_id, etc  # PolicyData: request_token, device_id, device_dm_token
-INJECT_KEY_FILE   = SNAPSHOTS_DIR / "inject.key.pem"   # our RSA private key (0600)
-DM_KEY_BACKUP     = SNAPSHOTS_DIR / "dm.key.pub.bak"   # backup of original DM public key
+SENSITIVE_FIELDS = {3, 8, 10}  # token / device_id fields — never print these
+INJECT_KEY_FILE   = SNAPSHOTS_DIR / "inject.key.pem"
+DM_KEY_BACKUP     = SNAPSHOTS_DIR / "dm.key.pub.bak"  # original DM public key
 INJECT_STATE_FILE = SNAPSHOTS_DIR / "inject_state.json"
 DM_BLOCK_STATE_FILE = SNAPSHOTS_DIR / "dm_block_state.json"
 SYNCED_STATE_FILE = SNAPSHOTS_DIR / "synced_state.json"
@@ -338,26 +397,24 @@ def _alog(msg):
         with open(ACTION_LOG_FILE, "a") as f:
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')}  {msg}\n")
     except Exception:
-        pass  # never let logging itself break the actual operation
+        pass
 
 POLICY_ID_MAP_FILE  = SNAPSHOTS_DIR / "chrome_policy_id_map.json"
 POLICY_OVERRIDE_FILE = SNAPSHOTS_DIR / "chrome_policy_id_overrides.json"
 CHUNKED_MAP_FILE = SNAPSHOTS_DIR / "chrome_policy_chunked_map.json"
-# legacy filename still written empty for older tooling
-CHUNKED_POLICIES_FILE = SNAPSHOTS_DIR / "chrome_policy_chunked_names.json"
+CHUNKED_POLICIES_FILE = SNAPSHOTS_DIR / "chrome_policy_chunked_names.json"  # legacy
 MAPPING_META_FILE = SNAPSHOTS_DIR / "mapping_meta.json"
 
 DEFAULT_OVR = {}
 
-# Chromium: top-level ids <= 1040 use field = id+2 on CloudPolicySettings.
-# Higher ids live in CloudPolicySubProtoN as field ((id-1041)%800)+1,
-# with subProtoN itself at CloudPolicySettings field 1040+2+N = 1042+N.
+# Chromium packs policy ids: <=1040 stay top-level (field = id+2);
+# higher ids go into SubProto chunks of 800.
 POLICY_ID_OFFSET = 2
 POLICY_LAST_TOP_LEVEL_ID = 1040
 POLICY_CHUNK_SIZE = 800
 
 def _chunk_and_field(yaml_id):
-    """Return (chunk, field) for a policies.yaml id."""
+    """Map a policy id to (chunk, field)."""
     if yaml_id <= POLICY_LAST_TOP_LEVEL_ID:
         return 0, yaml_id + POLICY_ID_OFFSET
     chunk = (yaml_id - POLICY_LAST_TOP_LEVEL_ID - 1) // POLICY_CHUNK_SIZE + 1
@@ -365,13 +422,12 @@ def _chunk_and_field(yaml_id):
     return chunk, field
 
 def _subproto_cs_field(chunk):
-    """CloudPolicySettings field number for CloudPolicySubProto{chunk}."""
+    """Field number for a sub-proto chunk."""
     return POLICY_LAST_TOP_LEVEL_ID + POLICY_ID_OFFSET + chunk
 
 def _load_pn2f():
-    """name -> (chunk, field). chunk 0 = top-level CloudPolicySettings field."""
+    """Map policy name to (chunk, field)."""
     out = {}
-    # top-level map is still {field_num_str: name} for compat
     id_to_name = {}
     if POLICY_ID_MAP_FILE.exists():
         id_to_name.update(json.loads(POLICY_ID_MAP_FILE.read_text()))
@@ -382,7 +438,6 @@ def _load_pn2f():
     for fnum, name in id_to_name.items():
         if name:
             out[name] = (0, int(fnum))
-    # chunked map: {name: {"chunk": N, "field": F}} or {name: [N, F]}
     if CHUNKED_MAP_FILE.exists():
         raw = json.loads(CHUNKED_MAP_FILE.read_text())
         for name, loc in raw.items():
@@ -395,25 +450,20 @@ def _load_pn2f():
     return out
 
 _PN2F = _load_pn2f()
-# names that are chunked (for list display)
 _CHUNKED = {n for n, (c, _) in _PN2F.items() if c > 0}
-
 
 def _reload_mapping():
     global _PN2F, _CHUNKED
     _PN2F = _load_pn2f()
     _CHUNKED = {n for n, (c, _) in _PN2F.items() if c > 0}
 
-
 _CHROME_VERSION = None
-
 
 def _chrome_version():
     global _CHROME_VERSION
     if _CHROME_VERSION is None:
         _CHROME_VERSION = _chrome_agent().rsplit(" ", 1)[-1]
     return _CHROME_VERSION
-
 
 def _mapping_note():
     if not _PN2F:
@@ -441,11 +491,6 @@ def _ptype(value):
         except ValueError:
             return 'string'
     return 'string'
-SM_POL_DIRS = [
-    "/run/daemon-store/session_manager",
-]
-
-
 def _enc_varint(n):
     # protobuf varint
     out = bytearray()
@@ -476,7 +521,7 @@ def _get_field(fields, fnum):
     return None, None
 
 def _parse_raw(data):
-    # returns list of (field, wire, val)
+    # -> list of (field, wire, val)
     fields = []
     pos = 0
     while pos < len(data):
@@ -498,7 +543,7 @@ def _reencode(fields, overrides):
         if fnum in overrides:
             new_val = overrides[fnum]
             if new_val is None:
-                applied.add(fnum)  # handled: dropped, never re-added below
+                applied.add(fnum)  # drop this field
                 continue
             if fnum not in applied:
                 out += _enc_field(fnum, 2, new_val)
@@ -529,15 +574,14 @@ def _user_pol_files():
 
 def _mk_pfr(policy_type, public_key_version=1):
     body = _enc_field(PFR_TYPE, 2, policy_type.encode())
-    body += (_enc_field(PFR_SIG, 0, 2)      # SHA256_RSA
+    body += (_enc_field(PFR_SIG, 0, 2)  # SHA256_RSA
              + _enc_field(PFR_PKV, 0, public_key_version))
     return body
 
 def _mk_dm_req(policy_type, public_key_version=1):
     pfr = _mk_pfr(policy_type, public_key_version)
-    dpr = _enc_field(DMR_REQ, 2, pfr)   # DevicePolicyRequest.requests[0]
-    return _enc_field(DMR_USER, 2, dpr)  # DeviceManagementRequest.policy_request
-
+    dpr = _enc_field(DMR_REQ, 2, pfr)
+    return _enc_field(DMR_USER, 2, dpr)
 
 class _Credentials:
     __slots__ = ("dm_token", "device_id", "public_key_version", "policy_type")
@@ -545,7 +589,7 @@ class _Credentials:
     def __init__(self, path):
         raw = Path(path).read_bytes()
         fields = _parse_raw(raw)
-        _, pd_bytes = _get_field(fields, 3)  # PolicyFetchResponse.policy_data
+        _, pd_bytes = _get_field(fields, 3)
         if pd_bytes is None:
             raise ValueError("No policy_data in %s" % path)
         pdf = _parse_raw(pd_bytes)
@@ -563,8 +607,7 @@ class _Credentials:
         self.public_key_version = pkv
         self.policy_type = pt or "google/chromeos/user"
 
-
-SNAPSHOT_KEEP = 20  # oldest ones beyond this get pruned after every save
+SNAPSHOT_KEEP = 20  # prune older snapshots after each save
 
 def _prune_snaps():
     snaps = sorted(SNAPSHOTS_DIR.glob("*.bin"), key=lambda p: p.stat().st_mtime)
@@ -572,7 +615,7 @@ def _prune_snaps():
         old.unlink()
 
 def cmd_fetch(args):
-    # pull from DM, save snapshot
+    # pull from DM and save a snapshot
     live = _live_pol()
     if live is None:
         print("ERROR: no live user policy found under /run/daemon-store/.\n"
@@ -598,7 +641,7 @@ def cmd_fetch(args):
     params = urllib.parse.urlencode({
         "retry":      "false",
         "agent":      _chrome_agent(),
-        "apptype":    "Chrome",          # NOT "chromeos", routes to user policy handler
+        "apptype":    "Chrome",  # not "chromeos" — routes to user policy
         "deviceid":   creds.device_id,
         "devicetype": "2",
         "oauth_token": "",
@@ -697,7 +740,6 @@ def cmd_fetch(args):
         _prune_snaps()
     print("Run `dump` to inspect it, or `diff` to compare with a prior snapshot.")
 
-
 def cmd_dump(args):
     if args.snapshot:
         path = Path(args.snapshot)
@@ -747,13 +789,12 @@ def cmd_dump(args):
         return
     pv = _parse_raw(pv_bytes)
     top_names = {f: n for n, (c, f) in _PN2F.items() if c == 0}
-    chunk_names = {}  # (chunk, field) -> name
+    chunk_names = {}
     for n, (c, f) in _PN2F.items():
         if c > 0:
             chunk_names[(c, f)] = n
     print("\nCloudPolicySettings (%d bytes, %d top-level fields):" % (len(pv_bytes), len(pv)))
     for f, w, v in sorted(pv, key=lambda t: t[0]):
-        # subProto fields are 1043, 1044, ...
         if f >= POLICY_LAST_TOP_LEVEL_ID + POLICY_ID_OFFSET + 1 and isinstance(v, bytes):
             chunk = f - (POLICY_LAST_TOP_LEVEL_ID + POLICY_ID_OFFSET)
             try:
@@ -771,7 +812,6 @@ def cmd_dump(args):
         kind, val = _dec_pol(v)
         print("  [%4d] %-45s %r  (%s)" % (f, name, val, kind))
 
-
 def _resolve_snapshot(label):
     path = Path(label)
     if path.exists():
@@ -781,7 +821,6 @@ def _resolve_snapshot(label):
         print("No snapshot matching '%s'" % label, file=sys.stderr)
         sys.exit(1)
     return matches[-1]
-
 
 def cmd_diff(args):
     path_a, path_b = _resolve_snapshot(args.a), _resolve_snapshot(args.b)
@@ -813,7 +852,6 @@ def cmd_diff(args):
     else:
         print("\n%d policy field(s) differ." % changed)
 
-
 def _load_profile(name):
     p = PROFILES_DIR / ("%s.json" % name)
     if not p.exists():
@@ -825,6 +863,74 @@ def _save_profile(name, policies):
     p = PROFILES_DIR / ("%s.json" % name)
     p.write_text(json.dumps(policies, indent=2, sort_keys=True))
     print("Saved profile '%s' -> %s" % (name, p))
+
+def _current_overrides():
+    """Current inject changes, or None."""
+    if not INJECT_STATE_FILE.exists():
+        return None
+    try:
+        state = json.loads(INJECT_STATE_FILE.read_text())
+    except Exception:
+        return None
+    overrides = state.get("overrides", {})
+    if not overrides:
+        return None
+    return {k: (None if v == "UNSET" else v) for k, v in overrides.items()}
+
+def _active_profile_name():
+    """Name of the active inject profile, or None."""
+    if not INJECT_STATE_FILE.exists():
+        return None
+    try:
+        state = json.loads(INJECT_STATE_FILE.read_text())
+    except Exception:
+        return None
+    return state.get("active_profile")
+
+def _live_policy_as_profile():
+    """All live policies as a dict. Returns (None, 0) if none."""
+    pv_raw, err = _load_cs_raw()
+    if err:
+        return None, 0
+
+    first_by_field = {}
+    first_w2_by_field = {}
+    for f, w, v in pv_raw:
+        if f not in first_by_field:
+            first_by_field[f] = v
+        if w == 2 and f not in first_w2_by_field:
+            first_w2_by_field[f] = v
+
+    chunk_cache = {}
+    result = {}
+    skipped = 0
+    for name in sorted(_PN2F.keys()):
+        chunk, fnum = _PN2F[name]
+        if chunk == 0:
+            raw = first_by_field.get(fnum)
+        else:
+            if chunk not in chunk_cache:
+                sub_bytes = first_w2_by_field.get(_subproto_cs_field(chunk))
+                chunk_cache[chunk] = _parse_raw(sub_bytes) if sub_bytes is not None else None
+            sub_raw = chunk_cache[chunk]
+            raw = next((v for f, w, v in sub_raw if f == fnum), None) if sub_raw is not None else None
+        kind, val = _dec_pol(raw)
+        if kind == 'unset':
+            continue
+        if kind == 'raw':
+            skipped += 1
+            continue
+        result[name] = val
+    return result, skipped
+
+def _backup_overrides(label):
+    """Save current inject changes as a profile."""
+    policies = _current_overrides()
+    if policies is None:
+        return None
+    name = "backup-%s-%s" % (label, time.strftime("%Y%m%dT%H%M%S"))
+    _save_profile(name, policies)
+    return name
 
 def cmd_local_list(args):
     print("=== Active local-override files in managed/ ===")
@@ -884,6 +990,18 @@ def cmd_profiles(args):
         except Exception:
             print("  %s: (unreadable)" % f.stem)
 
+def cmd_profile_from_policy(args):
+    print("Capturing current live policy...")
+    sys.stdout.flush()
+    policies, skipped = _live_policy_as_profile()
+    if policies is None:
+        print("ERROR: no live user policy found. Sign in first.", file=sys.stderr)
+        sys.exit(1)
+    _save_profile(args.name, policies)
+    print("%d policies captured." % len(policies))
+    if skipped:
+        print("(%d value(s) couldn't be decoded and were skipped)" % skipped)
+
 def cmd_edit(args):
     profile = _load_profile(args.name) if args.name else {}
 
@@ -906,7 +1024,7 @@ def cmd_edit(args):
         try:
             parsed = json.loads(v)
         except json.JSONDecodeError:
-            parsed = v  # treat as string
+            parsed = v  # keep as string if not valid JSON
         profile[k] = parsed
         print("  SET %s = %s" % (k, json.dumps(parsed)))
         changed = True
@@ -934,84 +1052,128 @@ def _user_email():
     pdf = _parse_raw(pd)
     return next((v.decode() for f, w, v in pdf if f == 7 and isinstance(v, bytes)), None)
 
-
 def cmd_status(args):
+    _refresh_dm_key_backup_if_safe()
     inj_on = INJECT_STATE_FILE.exists()
-
+    state = {}
     if inj_on:
         try:
             state = json.loads(INJECT_STATE_FILE.read_text())
         except Exception:
             state = {}
-        overrides = state.get("overrides", {})
-        if overrides:
-            print("%d %s changed:" % (len(overrides), "policy" if len(overrides)==1 else "policies"))
-            for name, val in overrides.items():
-                shown = "unset" if val == "UNSET" else val
-                print("  %s = %s" % (name, shown))
-            if _need_resignin(state):
-                print("  %snot synced yet%s %s(run apply or sign-out)%s" % (_YELLOW, _RESET, _DIM, _RESET))
-    else:
-        print("%snothing changed, normal policy in effect%s" % (_DIM, _RESET))
 
+    title = "Status"
+    width = 62
+    print(_BCYAN + "+" + "-" * width + "+" + _RESET)
+    print(_BCYAN + "|" + _RESET + _bold(title.center(width)) + _BCYAN + "|" + _RESET)
+    print(_BCYAN + "+" + "-" * width + "+" + _RESET)
     print()
+
+    def row(label, value):
+        print("  %s%s%s %s" % (_DIM, label.ljust(17), _RESET, value))
+
     live = _live_pol()
     if live:
+        user = _user_email() or "?"
         raw = live.read_bytes()
         fields = _parse_raw(raw)
         _, pd = _get_field(fields, 3)
+        ts_str = ""
         if pd:
             pdf = _parse_raw(pd)
-            ts_ms = next((v for f,w,v in pdf if f==2 and isinstance(v,int)), None)
-            user  = _user_email() or "?"
+            ts_ms = next((v for f, w, v in pdf if f == 2 and isinstance(v, int)), None)
             if ts_ms:
                 import datetime
-                dt = datetime.datetime.utcfromtimestamp(ts_ms/1000)
-                print("Signed in: %s  (last fetch %s UTC)" % (user, dt.strftime("%Y-%m-%d %H:%M:%S")))
-            else:
-                print("Signed in: %s" % user)
+                dt = datetime.datetime.utcfromtimestamp(ts_ms / 1000)
+                ts_str = "  (last fetch %s UTC)" % dt.strftime("%Y-%m-%d %H:%M:%S")
+        row("Account", _bold(user))
+        row("Session", _BGREEN + "signed in" + _RESET + ts_str)
         pf, kf = _user_pol_files()
-        if pf is not None and not _verify_live_pair(pf, kf):
-            print("%sWARNING: the live key/policy pair doesn't verify itself. "
-                  "Run `eject` to fix it.%s" % (_BYELLOW, _RESET))
+        if pf is not None:
+            ok = _verify_live_pair(pf, kf)
+            row("Live policy", (_BGREEN + "verifies" + _RESET) if ok else
+                                (_BYELLOW + "does not verify, run `eject`" + _RESET))
     else:
-        print("Not signed in (no live policy mount found)")
+        row("Session", _RED + "not signed in" + _RESET)
 
+    print()
+    overrides = state.get("overrides", {})
+    if inj_on and overrides:
+        resync = _need_resignin(state)
+        word = (_BYELLOW + "not synced" + _RESET) if resync else (_BGREEN + "synced" + _RESET)
+        row("Overrides", "%d changed, %s" % (len(overrides), word))
+    else:
+        row("Overrides", _dim("none, normal policy in effect"))
+
+    active = state.get("active_profile") if inj_on else None
+    row("Active profile", _bold(active) if active else _dim("none"))
+
+    print()
     _mkdir(MANAGED_DIR)
     local_files = list(MANAGED_DIR.glob("*.json"))
-    if local_files:
-        print("Local override files: %d active in %s" % (len(local_files), MANAGED_DIR))
+    row("Local overrides", ("%d active" % len(local_files)) if local_files else _dim("none"))
 
     snaps = (sorted(SNAPSHOTS_DIR.glob("*.bin"), key=lambda p: p.stat().st_mtime)
              if SNAPSHOTS_DIR.exists() else [])
-    print("Saved snapshots: %d%s" % (len(snaps), (" (latest: %s)" % snaps[-1].name) if snaps else ""))
+    row("Snapshots", ("%d saved (latest: %s)" % (len(snaps), snaps[-1].name)) if snaps
+                       else _dim("none"))
+
+    if not DM_KEY_BACKUP.exists():
+        row("DM key backup", _dim("none yet"))
+    elif snaps and _verify_pfr(_parse_raw(snaps[-1].read_bytes()), DM_KEY_BACKUP.read_bytes()):
+        row("DM key backup", _BGREEN + "verifies latest snapshot" + _RESET)
+    elif snaps:
+        row("DM key backup", _RED + "Verification against latest snapshot failed" + _RESET)
+    else:
+        row("DM key backup", _dim("present"))
+
+    profiles = sorted(PROFILES_DIR.glob("*.json")) if PROFILES_DIR.exists() else []
+    row("Profiles saved", str(len(profiles)) if profiles else _dim("0"))
+
+    blk = _blk_load()
+    ips = blk.get("v4", []) + blk.get("v6", [])
+    if ips:
+        row("DM server", _BGREEN + "blocked (%d address%s)" %
+                          (len(ips), "" if len(ips) == 1 else "es") + _RESET)
+    elif inj_on and overrides and not _need_resignin(state):
+        row("DM server", _RED + "not blocked, synced edits are unprotected" + _RESET)
+    else:
+        row("DM server", _dim("not blocked"))
+
+    print()
+    row("Policy mapping", "%d policies known" % len(_PN2F))
     note = _mapping_note()
     if note:
-        print("%s%s%s" % (_YELLOW, note, _RESET))
-
+        print("  %s%s%s" % (_BYELLOW, note, _RESET))
 
 def _atomic_write(path, data):
-    """Write data to path via a temp file + rename, so a mid-write restart or
-    sign-out can never leave a truncated/partial file behind."""
+    """Write a file safely."""
     tmp = path.with_name(path.name + ".tmp-%d" % os.getpid())
     tmp.write_bytes(data)
     os.replace(str(tmp), str(path))
 
-
 def _verify_live_pair(policy_file, key_file):
-    """True if the current on-disk key/policy pair verify each other. False
-    (not an exception) for any read/parse/verify failure, including a pair
-    torn mid-write by a sign-out or restart."""
+    """True if the key and policy files match."""
     try:
         pfr_raw = _parse_raw(policy_file.read_bytes())
         return _verify_pfr(pfr_raw, key_file.read_bytes())
     except Exception:
         return False
 
+def _refresh_dm_key_backup_if_safe():
+    """Update the saved DM key if inject is off."""
+    if INJECT_STATE_FILE.exists():
+        return
+    pf, kf = _user_pol_files()
+    if pf is None or kf is None:
+        return
+    if not _verify_live_pair(pf, kf):
+        return
+    SNAPSHOTS_DIR.mkdir(parents=True, exist_ok=True)
+    DM_KEY_BACKUP.write_bytes(kf.read_bytes())
 
 def _verify_pfr(pfr_raw, pub_der):
-    """True if this PolicyFetchResponse's policy_data_signature verifies
-    against the given DER-encoded public key. Never raises."""
+    """True if the policy signature matches the public key."""
     try:
         from cryptography.hazmat.primitives import serialization, hashes
         from cryptography.hazmat.primitives.asymmetric import padding
@@ -1025,7 +1187,6 @@ def _verify_pfr(pfr_raw, pub_der):
     except Exception:
         return False
 
-
 def _try_crypto():
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.hazmat.primitives import serialization, hashes
@@ -1033,7 +1194,6 @@ def _try_crypto():
     return rsa, serialization, hashes, padding
 
 def _need_crypto():
-    # install cryptography if missing
     try:
         return _try_crypto()
     except ImportError:
@@ -1074,7 +1234,7 @@ def _need_crypto():
     sys.exit(1)
 
 def cmd_inject(args):
-    # rewrite blob + resign. does NOT push to chrome (use apply)
+    # rewrite + resign the blob; use apply to push it live
     rsa_m, serial, hashes_m, pad = _need_crypto()
 
     policy_file, key_file = _user_pol_files()
@@ -1088,11 +1248,10 @@ def cmd_inject(args):
     overrides_json = {}
 
     if args.profile:
-        prof = _load_profile(args.profile)
-        if not prof:
+        if not (PROFILES_DIR / ("%s.json" % args.profile)).exists():
             print("ERROR: Profile '%s' not found." % args.profile, file=sys.stderr)
             sys.exit(1)
-        overrides_json.update(prof)
+        overrides_json.update(_load_profile(args.profile))
 
     if args.also_active:
         if MANAGED_DIR.exists():
@@ -1258,6 +1417,7 @@ def cmd_inject(args):
                           **{k: "UNSET" for k in unset_names}},
         "resignin_needed": resignin_needed,
         "chrome_pid_at_inject": _chrome_pid(),
+        "active_profile": args.profile or prev_state.get("active_profile"),
     }
 
     _atomic_write(policy_file, new_pfr_bytes)
@@ -1274,9 +1434,16 @@ def cmd_inject(args):
     print("  `eject` undoes this.")
     print("="*60)
 
+def cmd_backup(args):
+    name = _backup_overrides(args.label or "manual")
+    if name is None:
+        print("Nothing injected right now, nothing to back up.")
+        return
+    print("Bring it back later with:")
+    print("  inject --profile %s --force" % name)
 
 def cmd_eject(args):
-    # undo inject
+    # undo inject: restore original key and policy
     if not INJECT_STATE_FILE.exists():
         print("No active inject found (no inject_state.json).", file=sys.stderr)
         sys.exit(1)
@@ -1335,15 +1502,16 @@ def cmd_eject(args):
     else:
         restore_bytes = restore_path.read_bytes()
         if not _verify_pfr(_parse_raw(restore_bytes), dm_pub):
-            print("ERROR: the saved DM key doesn't verify %s, so restoring "
-                  "them together would leave a broken pair.\n"
-                  "Run `fetch` once while signed in to re-verify, then eject "
-                  "again." % restore_path.name, file=sys.stderr)
+            print("ERROR: Verification against latest snapshot failed.\n"
+                  "Run `sign-out` (or Sign out now in the menu), then sign back in.",
+                  file=sys.stderr)
             sys.exit(1)
         _atomic_write(key_file, dm_pub)
         print("  Restored DM key: %s" % key_file)
         _atomic_write(policy_file, restore_bytes)
         print("  Restored policy: %s" % restore_path)
+
+    backup_name = _backup_overrides("eject")
 
     INJECT_STATE_FILE.unlink()
     if SYNCED_STATE_FILE.exists():
@@ -1353,8 +1521,11 @@ def cmd_eject(args):
 
     print("\n" + "="*60)
     print("EJECTED. Sign out and back in to activate the original DM policy.")
+    if backup_name:
+        print("Your changes were backed up. Bring them back with:")
+        print("  inject --profile %s --force" % backup_name)
     print("="*60)
-
+    return backup_name
 
 def cmd_sign_out(args):
     import subprocess
@@ -1371,6 +1542,76 @@ def cmd_sign_out(args):
         print(result.stderr.strip() or result.stdout.strip(), file=sys.stderr)
         sys.exit(1)
 
+def cmd_repair_signin(args):
+    print("=== Sign-in loop repair ===")
+    print("For when the device keeps repeating sign-in after a policy edit")
+    print("(a key-mismatch/PubkeySetIllegal crash loop).")
+    print()
+
+    email = args.user or _user_email()
+    if not email:
+        try:
+            email = _eline("Account email to repair: ", "")
+        except EOFError:
+            print("Cancelled.", file=sys.stderr)
+            sys.exit(1)
+    if not email:
+        print("ERROR: no account email given.", file=sys.stderr)
+        sys.exit(1)
+
+    print()
+    print("Clearing local inject state...")
+    if INJECT_STATE_FILE.exists():
+        try:
+            cmd_eject(argparse.Namespace())
+        except SystemExit:
+            print("  eject refused (key mismatch); clearing tracked state directly instead.")
+            INJECT_STATE_FILE.unlink(missing_ok=True)
+            if SYNCED_STATE_FILE.exists():
+                SYNCED_STATE_FILE.unlink()
+    cmd_dm_block_stop()
+    print("  done. Try signing in again now, before going any further.")
+    print()
+    print("Still looping? Step 2 wipes ALL local data for %s" % email)
+    print("(downloads, cached files, local app state, everything)")
+    print("and wipes account on next reboot. This cannot be undone.")
+    print()
+    sys.stdout.write("Read the above carefully, then press Enter to continue, or esc to stop...")
+    sys.stdout.flush()
+    try:
+        if _read_line_raw() is _ESC_CANCEL:
+            print("Stopped.")
+            return
+    except EOFError:
+        return
+    try:
+        typed = _confirm("Wipe and reprovision %s? [y/N]: " % email)
+    except EOFError:
+        return
+    if not typed:
+        print("Stopped.")
+        return
+
+    import subprocess
+    print("Removing local profile for %s ..." % email)
+    result = subprocess.run(
+        ["cryptohome", "--action=remove", "--user=%s" % email, "--force"],
+        capture_output=True, text=True)
+    if result.returncode != 0:
+        print("ERROR: cryptohome removal failed:", file=sys.stderr)
+        print(result.stderr.strip() or result.stdout.strip(), file=sys.stderr)
+        sys.exit(1)
+
+    if DM_KEY_BACKUP.exists():
+        DM_KEY_BACKUP.unlink()
+    for snap in SNAPSHOTS_DIR.glob("*.bin"):
+        snap.unlink()
+    if INJECT_STATE_FILE.exists():
+        INJECT_STATE_FILE.unlink()
+    if SYNCED_STATE_FILE.exists():
+        SYNCED_STATE_FILE.unlink()
+
+    print("Done. Sign in again to get a completely fresh profile.")
 
 def _pol_desc(account_id):
     def varint(n):
@@ -1394,7 +1635,6 @@ def _pol_desc(account_id):
     return (field_varint(1, 1)
             + field_bytes(2, account_id.encode())
             + field_varint(3, 0))
-
 
 def _dbus_call(member, sig, args):
     import socket
@@ -1495,7 +1735,6 @@ def _dbus_call(member, sig, args):
     sock.close()
     return reply
 
-
 def _store_pol(descriptor_bytes, policy_bytes):
     try:
         reply = _dbus_call("StorePolicyEx", "ayay", [descriptor_bytes, policy_bytes])
@@ -1508,7 +1747,6 @@ def _store_pol(descriptor_bytes, policy_bytes):
         msg = body[4:4 + int.from_bytes(body[:4], "little")].decode(errors="replace") if len(body) > 4 else ""
         return False, "Error: GDBus.Error:%s: %s" % (reply.get(4, "unknown"), msg)
     return _store_pol_gdbus(descriptor_bytes, policy_bytes)
-
 
 def _store_pol_gdbus(descriptor_bytes, policy_bytes):
     import subprocess
@@ -1526,7 +1764,6 @@ def _store_pol_gdbus(descriptor_bytes, policy_bytes):
     if result.returncode != 0:
         return False, (result.stderr.strip() or result.stdout.strip())
     return True, None
-
 
 def _restart_chrome(timeout=20):
     import signal
@@ -1554,9 +1791,8 @@ def _restart_chrome(timeout=20):
     print("Chrome did not respawn within the timeout.", file=sys.stderr)
     return False
 
-
 def cmd_apply(args):
-    # StorePolicyEx + chrome restart
+    # StorePolicyEx + restart chrome
     if not INJECT_STATE_FILE.exists():
         print("Nothing injected. Use inject/toggle/unset first.", file=sys.stderr)
         sys.exit(1)
@@ -1594,18 +1830,15 @@ def cmd_apply(args):
     cmd_dm_block_start()
     print("Done. Check chrome://policy.")
 
-
 def cmd_restart_chrome(args):
     print("Restarting Chrome...")
     if not _restart_chrome():
         sys.exit(1)
     print("Done.")
 
-
 class _Rec:
     def __init__(self, value):
         self.value = value
-
 
 def _do_preset(changes):
     sets, unsets, skipped = [], [], []
@@ -1629,6 +1862,26 @@ def _do_preset(changes):
         force=True, new_key=False))
     return _offer_so()
 
+def _inject_profile(name):
+    cmd_inject(argparse.Namespace(
+        profile=name, also_active=False, set=None, unset=None,
+        force=True, new_key=False))
+    return _offer_so()
+
+def _mirror_active_profile(active, name, value):
+    if not active:
+        return
+    prof = _load_profile(active)
+    prof[name] = value
+    _save_profile(active, prof)
+
+def _live_edit_profile_arg(active):
+    """Profile to tag live edits with, or None."""
+    if not active or _active_profile_name() == active:
+        return None
+    if not (PROFILES_DIR / ("%s.json" % active)).exists():
+        _save_profile(active, {})
+    return active
 
 def _try_apply():
     if not INJECT_STATE_FILE.exists():
@@ -1639,7 +1892,7 @@ def _try_apply():
         return True
     except SystemExit:
         pass
-    print("\n%sSigning out...%s" % (_YELLOW, _RESET))
+    print("\n%sSigning out...%s" % (_RED, _RESET))
     cmd_sign_out(argparse.Namespace())
     print("\nSign back in, then come back here.")
     _cls_end()
@@ -1648,7 +1901,6 @@ def _try_apply():
     except EOFError:
         pass
     return False
-
 
 def _offer_so():
     if not INJECT_STATE_FILE.exists():
@@ -1664,18 +1916,19 @@ def _offer_so():
     return _try_apply()
 
 def _do_fetch():
+    backup_name = None
     if INJECT_STATE_FILE.exists():
-        cmd_eject(argparse.Namespace())
+        backup_name = cmd_eject(argparse.Namespace())
     cmd_fetch(argparse.Namespace())
-
+    return backup_name
 
 MAPPING_FALLBACK_URL = "https://raw.githubusercontent.com/nmsjayden/dev/main/policy_mapping_fallback.json"
-
+TOOL_UPDATE_URL = "https://raw.githubusercontent.com/nmsjayden/dev/main/dm_policy_tool.py"
 
 def _parse_policies_yaml(text):
     import re as _re
-    mapping = {}      # top-level: field_num -> name
-    chunked_map = {}  # name -> {"chunk": N, "field": F}
+    mapping = {}
+    chunked_map = {}
     in_policies = False
     for line in text.splitlines():
         stripped = line.strip()
@@ -1689,7 +1942,6 @@ def _parse_policies_yaml(text):
             m = _re.match(r'\s*(\d+):\s*(\S+)', line)
             if m:
                 pid, name = int(m.group(1)), m.group(2)
-                # skip retired/placeholder slots
                 if name in ("''", '""', 'None', '') or not name:
                     continue
                 if name[0] in ("'", '"'):
@@ -1702,7 +1954,6 @@ def _parse_policies_yaml(text):
                 else:
                     chunked_map[name] = {"chunk": chunk, "field": field}
     return mapping, chunked_map
-
 
 def cmd_refresh_mapping(args):
     import urllib.request
@@ -1756,6 +2007,48 @@ def cmd_refresh_mapping(args):
     print("Saved %d top-level + %d chunked mappings" % (len(mapping), len(chunked_map)))
     print("Restart tool (or re-run) to pick up.")
 
+def cmd_update(args):
+    import urllib.request
+
+    try:
+        own_path = Path(os.path.realpath(__file__))
+    except NameError:
+        print("ERROR: can't tell where this script is installed.", file=sys.stderr)
+        sys.exit(1)
+
+    print("Checking %s ..." % TOOL_UPDATE_URL)
+    try:
+        with urllib.request.urlopen(TOOL_UPDATE_URL, timeout=20) as resp:
+            new_bytes = resp.read()
+    except Exception as e:
+        print("ERROR: could not reach GitHub: %s" % e, file=sys.stderr)
+        sys.exit(1)
+
+    if len(new_bytes) < 1000 or b"def cmd_status" not in new_bytes:
+        print("ERROR: what came back doesn't look like the tool. Not installing it.",
+              file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        own_bytes = own_path.read_bytes()
+    except Exception as e:
+        print("ERROR: can't read %s: %s" % (own_path, e), file=sys.stderr)
+        sys.exit(1)
+
+    if hashlib.sha256(new_bytes).digest() == hashlib.sha256(own_bytes).digest():
+        print("Already up to date: %s" % own_path)
+        return
+
+    mode = own_path.stat().st_mode
+    try:
+        _atomic_write(own_path, new_bytes)
+        own_path.chmod(mode)
+    except PermissionError:
+        print("ERROR: no write permission on %s. Try with sudo." % own_path, file=sys.stderr)
+        sys.exit(1)
+
+    print("Updated %s (%d -> %d bytes). Re-run to use the new version."
+          % (own_path, len(own_bytes), len(new_bytes)))
 
 def cmd_fix_mapping(args):
     overrides = {}
@@ -1774,7 +2067,6 @@ def cmd_fix_mapping(args):
     else:
         print("field %s: %s" % (args.field, args.name))
     print("Saved to %s. Restart the tool to pick it up." % POLICY_OVERRIDE_FILE)
-
 
 LIST_RE = re.compile(
     r'(List|Urls?|Origins?|Forcelist|Blocklist|Allowlist|Whitelist|Blacklist|Extensions)$')
@@ -1803,13 +2095,13 @@ def _real_snap():
     return None
 
 def _cs_from_pd(pd_bytes):
-    """Top-level only: field_num -> raw *PolicyProto bytes."""
+    """Top-level policy fields from policy data."""
     pdf = _parse_raw(pd_bytes)
     _, pv_bytes = _get_field(pdf, 4)
     return {f: v for f, w, v in _parse_raw(pv_bytes)} if pv_bytes else {}
 
 def _cs_locs_from_pd(pd_bytes):
-    """All policies including chunked: (chunk, field) -> raw bytes."""
+    """All policy fields from policy data."""
     pdf = _parse_raw(pd_bytes)
     _, pv_bytes = _get_field(pdf, 4)
     if not pv_bytes:
@@ -1888,7 +2180,6 @@ def cmd_verify_mapping(args):
         print("\n%s suspect mapping(s), unconfirmed. Check with `get`, then:" % flagged)
         print("  %s fix-mapping FIELD CorrectPolicyName" % sys.argv[0])
 
-
 def cmd_list_policies(args):
     if not _PN2F:
         print("No mapping loaded. Run `%s refresh-mapping` first." % sys.argv[0],
@@ -1904,10 +2195,8 @@ def cmd_list_policies(args):
     suffix = " matching '%s'" % filt if filt else ""
     print("\n%d policies%s" % (len(names), suffix))
 
-
-
 def _load_cs_raw():
-    """Return (pv_raw list, err) for live CloudPolicySettings fields."""
+    """Load live policy fields."""
     policy_file, _ = _user_pol_files()
     if policy_file is None:
         return None, "no_live_policy"
@@ -1922,7 +2211,7 @@ def _load_cs_raw():
     return _parse_raw(pv_bytes), None
 
 def _cs_field(loc):
-    """loc is field num (int, top-level) or (chunk, field). Returns (raw_bytes, err)."""
+    """Get one policy field from the live blob."""
     if isinstance(loc, tuple):
         chunk, fnum = loc
     else:
@@ -1933,7 +2222,6 @@ def _cs_field(loc):
     if chunk == 0:
         raw = next((v for f, w, v in pv_raw if f == fnum), None)
         return raw, None
-    # nested: CloudPolicySettings.subProto{chunk} then inner field
     sub_f = _subproto_cs_field(chunk)
     sub_bytes = next((v for f, w, v in pv_raw if f == sub_f and w == 2), None)
     if sub_bytes is None:
@@ -1943,12 +2231,11 @@ def _cs_field(loc):
     return raw, None
 
 def _encode_pol_value(value, recommended=False):
-    """Encode a Python value as *PolicyProto bytes (field2 payload wrapper)."""
+    """Encode a policy value."""
     body = _encode_pol_body(value)
     if recommended:
         return _enc_field(1, 2, _enc_field(1, 0, 1)) + body
     return body
-
 
 def _encode_pol_body(value):
     ptype = _ptype(value)
@@ -1965,7 +2252,7 @@ def _encode_pol_body(value):
     return _enc_field(2, 2, str_value.encode())
 
 def _apply_loc_overrides(pv_raw, loc_overrides):
-    """Apply {(chunk, field): bytes|None} onto CloudPolicySettings field list. Returns new bytes."""
+    """Apply field overrides to policy data."""
     top = {}
     by_chunk = {}
     for (chunk, fnum), val in loc_overrides.items():
@@ -1982,7 +2269,6 @@ def _apply_loc_overrides(pv_raw, loc_overrides):
         new_sub = _reencode(sub_raw, inner_ov)
         fields = _parse_raw(_reencode(fields, {sub_f: new_sub}))
     return _reencode(fields, top)
-
 
 def _dec_strlist(field2_bytes):
     try:
@@ -2004,13 +2290,12 @@ def _dec_pol(raw_bytes):
         return ('unset', None)
     fields = _parse_raw(raw_bytes)
     for f, w, v in fields:
-        if f == 2:  # the `value` field on every *PolicyProto message
+        if f == 2:  # value field on *PolicyProto
             if w == 0:
                 return ('int', v)
             elif w == 2:
                 return _dec_strlist(v)
     return ('raw', raw_bytes)
-
 
 def cmd_get(args):
     if args.name not in _PN2F:
@@ -2034,7 +2319,6 @@ def cmd_get(args):
         print("  current value: %s" % (val if val else "[]"))
     else:
         print("  current value: %r  (%s)" % (val, kind))
-
 
 def cmd_toggle(args):
     if args.name not in _PN2F:
@@ -2061,7 +2345,6 @@ def cmd_toggle(args):
         set=["%s=%s" % (args.name, new_val)], unset=None, force=True, new_key=False)
     cmd_inject(inject_args)
 
-
 def cmd_unset(args):
     if args.name not in _PN2F:
         print("ERROR: unknown policy %s" % args.name, file=sys.stderr)
@@ -2079,8 +2362,6 @@ def cmd_unset(args):
         profile=None, also_active=False,
         set=None, unset=[args.name], force=True, new_key=False)
     cmd_inject(inject_args)
-
-
 
 def _chrome_pid():
     try:
@@ -2100,7 +2381,6 @@ def _chrome_pid():
         return int(pid)
     return None
 
-
 def _synced_hash(pv_bytes, injected):
     current = _chrome_pid()
     try:
@@ -2113,7 +2393,6 @@ def _synced_hash(pv_bytes, injected):
         pass
     return hashlib.sha256(pv_bytes).hexdigest()
 
-
 def _need_resignin(state):
     if not state.get("resignin_needed"):
         return False
@@ -2122,7 +2401,6 @@ def _need_resignin(state):
     if recorded is not None and current is not None and current != recorded:
         return False
     return True
-
 
 def _dm_addrs():
     import socket as _socket
@@ -2133,7 +2411,6 @@ def _dm_addrs():
         elif fam == _socket.AF_INET6:
             v6.add(sockaddr[0])
     return v4, v6
-
 
 def _blk_load():
     if DM_BLOCK_STATE_FILE.exists():
@@ -2159,7 +2436,6 @@ def _blk_rm(binary, ip, port):
     import subprocess
     subprocess.run([binary, "-D", "OUTPUT", "-d", ip, "-p", "tcp",
                     "--dport", str(port), "-j", "REJECT"], capture_output=True)
-
 
 def cmd_dm_block_start(args=None):
     v4_addrs, v6_addrs = _dm_addrs()
@@ -2204,14 +2480,13 @@ def cmd_dm_block(args):
     {"start": cmd_dm_block_start, "stop": cmd_dm_block_stop,
      "status": cmd_dm_block_status}[args.block_cmd](args)
 
-
 def _field_tag(chunk, fnum):
     if chunk == 0:
         return "%5d" % fnum
     return "%d:%03d" % (chunk, fnum)
 
 def _looks_bool(name):
-    """Heuristic: bool policies vs int/string enums."""
+    """True if the policy name looks like a boolean."""
     if name.endswith(("Settings", "Availability", "Behavior", "Mode")):
         if name.endswith(("Enabled", "Disabled", "Allowed")):
             return True
@@ -2229,13 +2504,11 @@ def _looks_bool(name):
 def _fmt_val(name, kind, val):
     if kind == 'unset':
         return _dim("not set")
-    # bools on the wire are 0/1
     if kind == 'int' and val in (0, 1) and _looks_bool(name):
         return (_BGREEN + "true" + _RESET) if val else (_RED + "false" + _RESET)
     if kind == 'int':
         return _bold(str(val))
     if kind == 'string':
-        # string enums
         low = val.lower() if isinstance(val, str) else str(val)
         if low in ("true", "enabled", "allow", "allowed"):
             return _BGREEN + val + _RESET
@@ -2257,7 +2530,18 @@ def _row_lbl(name, chunk, fnum, kind, val, width):
     val_str = _fmt_val(name, kind, val)
     return "%s[%s]%s %s   %s" % (_DIM, tag, _RESET, name.ljust(width), val_str)
 
-def _browse():
+def _py_kind(val):
+    if val is None:
+        return ('unset', None)
+    if isinstance(val, bool):
+        return ('int', 1 if val else 0)
+    if isinstance(val, int):
+        return ('int', val)
+    if isinstance(val, list):
+        return ('list', val)
+    return ('string', val if isinstance(val, str) else str(val))
+
+def _browse(profile_name=None):
     all_names = sorted(_PN2F.keys())
     if not all_names:
         print("No policy mapping loaded. Run `refresh-mapping` first.")
@@ -2279,6 +2563,7 @@ def _browse():
     query = ""
     digit_buf = ""
     page_size = max(5, shutil.get_terminal_size((80, 24)).lines - 12)
+    pending_auto_profile = ("live-%s" % time.strftime("%Y%m%dT%H%M%S")) if profile_name is None else None
 
     while True:
         if not filtered:
@@ -2293,24 +2578,61 @@ def _browse():
 
         name_width = 60
 
+        profile = _load_profile(profile_name) if profile_name else None
+        active = _active_profile_name() if profile_name is None else None
+        if profile_name is None and active is None:
+            active = pending_auto_profile
+
+        # index live policy once per frame (not per row)
+        live_first = {}
+        live_first_w2 = {}
+        live_chunk_cache = {}
+        live_err = None
+        if profile_name is None:
+            pv_raw, live_err = _load_cs_raw()
+            if live_err is None:
+                for f, w, v in pv_raw:
+                    if f not in live_first:
+                        live_first[f] = v
+                    if w == 2 and f not in live_first_w2:
+                        live_first_w2[f] = v
+
+        def _live_raw(chunk, fnum):
+            if chunk == 0:
+                return live_first.get(fnum)
+            if chunk not in live_chunk_cache:
+                sub_bytes = live_first_w2.get(_subproto_cs_field(chunk))
+                live_chunk_cache[chunk] = _parse_raw(sub_bytes) if sub_bytes is not None else None
+            sub_raw = live_chunk_cache[chunk]
+            if sub_raw is None:
+                return None
+            return next((v for f, w, v in sub_raw if f == fnum), None)
+
         rows = []
         for n in visible:
             chunk, fnum = _PN2F[n]
-            raw, err = _cs_field((chunk, fnum))
-            if err == "no_live_policy":
-                _cls()
-                print(_RED + "No live user policy found. Sign in first." + _RESET)
-                _cls_end()
-                try:
-                    input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
-                except EOFError:
-                    pass
-                return
-            kind, val = _dec_pol(raw)
+            if profile_name is not None:
+                kind, val = _py_kind(profile.get(n))
+            else:
+                if live_err == "no_live_policy":
+                    _cls()
+                    print(_RED + "No live user policy found. Sign in first." + _RESET)
+                    _cls_end()
+                    try:
+                        input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                    except EOFError:
+                        pass
+                    return
+                kind, val = _dec_pol(_live_raw(chunk, fnum))
             rows.append((n, chunk, fnum, kind, val))
 
         _cls()
-        title = "Policies  %d / %d" % (sel + 1, len(filtered))
+        if profile_name is not None:
+            title = "Profile: %s  %d / %d" % (profile_name, sel + 1, len(filtered))
+        else:
+            title = "Policies  %d / %d" % (sel + 1, len(filtered))
+            if active:
+                title += "  (profile: %s)" % active
         if query:
             title += "  [%s]" % query
         content_w = name_width + 28
@@ -2328,24 +2650,32 @@ def _browse():
                 print("    %s" % label)
         print()
 
-        inj_state = {}
-        if INJECT_STATE_FILE.exists():
-            try:
-                inj_state = json.loads(INJECT_STATE_FILE.read_text())
-            except Exception:
-                pass
-        if inj_state and _need_resignin(inj_state):
-            word, color = "not synced", _YELLOW
-        elif INJECT_STATE_FILE.exists():
-            word, color = "synced", _BGREEN
+        if profile_name is not None:
+            word = "%d %s in this profile" % (len(profile), "policy" if len(profile) == 1 else "policies")
+            print((_DIM + word + _RESET).center(width + len(_DIM) + len(_RESET)))
         else:
-            word, color = "no changes", _DIM
-        padded = word.center(width)
-        print(padded.replace(word, "%s%s%s" % (color, word, _RESET), 1))
+            inj_state = {}
+            if INJECT_STATE_FILE.exists():
+                try:
+                    inj_state = json.loads(INJECT_STATE_FILE.read_text())
+                except Exception:
+                    pass
+            if inj_state and _need_resignin(inj_state):
+                word, color = "not synced", _YELLOW
+            elif INJECT_STATE_FILE.exists():
+                word, color = "synced", _BGREEN
+            else:
+                word, color = "no changes", _DIM
+            padded = word.center(width)
+            print(padded.replace(word, "%s%s%s" % (color, word, _RESET), 1))
         if digit_buf:
             print(("go %s" % digit_buf).center(width))
-        print(_DIM + "\n  [up/down] move  [enter] toggle/edit  [/] search  [x] unset  "
-                     "[a] apply  [id+enter] jump  [q] back" + _RESET)
+        if profile_name is not None:
+            print(_DIM + "\n  [up/down] move  [enter] edit  [/] search  [x] remove  "
+                         "[a] inject  [id+enter] jump  [esc] back" + _RESET)
+        else:
+            print(_DIM + "\n  [up/down] move  [enter] edit  [/] search  [x] unset  "
+                         "[a] apply  [id+enter] jump  [esc] back" + _RESET)
         _cls_end()
 
         key = _key()
@@ -2355,7 +2685,7 @@ def _browse():
         elif key == 'DOWN':
             sel += 1
             digit_buf = ""
-        elif key in ('q', 'Q'):
+        elif key == 'ESC':
             if query:
                 query = ""
                 filtered = all_names
@@ -2382,15 +2712,34 @@ def _browse():
             digit_buf += key
         elif key in ('x', 'X'):
             name, chunk, fnum, kind, val = rows[sel - window_start]
-            if kind != 'unset':
+            if profile_name is not None:
+                if name in profile:
+                    del profile[name]
+                    _save_profile(profile_name, profile)
+            elif kind != 'unset':
                 with _quiet():
                     cmd_inject(argparse.Namespace(
-                        profile=None, also_active=False, set=None, unset=[name],
-                        force=True, new_key=False))
+                        profile=_live_edit_profile_arg(active), also_active=False,
+                        set=None, unset=[name], force=True, new_key=False))
+                _mirror_active_profile(active, name, None)
         elif key in ('a', 'A'):
             _cls()
             _cls_end()
-            ok = _try_apply()
+            if profile_name is not None:
+                if not profile:
+                    print("Profile is empty, nothing to inject.")
+                    _cls_end()
+                    try:
+                        input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                    except EOFError:
+                        return
+                    continue
+                try:
+                    ok = _inject_profile(profile_name)
+                except SystemExit:
+                    ok = False
+            else:
+                ok = _try_apply()
             _cls_end()
             if ok:
                 try:
@@ -2411,11 +2760,16 @@ def _browse():
                 continue
             name, chunk, fnum, kind, val = rows[sel - window_start]
             if kind == 'int' and val in (0, 1):
-                with _quiet():
-                    cmd_inject(argparse.Namespace(
-                        profile=None, also_active=False,
-                        set=["%s=%s" % (name, 0 if val else 1)],
-                        unset=None, force=True, new_key=False))
+                if profile_name is not None:
+                    profile[name] = not bool(val)
+                    _save_profile(profile_name, profile)
+                else:
+                    with _quiet():
+                        cmd_inject(argparse.Namespace(
+                            profile=_live_edit_profile_arg(active), also_active=False,
+                            set=["%s=%s" % (name, 0 if val else 1)],
+                            unset=None, force=True, new_key=False))
+                    _mirror_active_profile(active, name, not bool(val))
             else:
                 _cls()
                 if kind == 'unset':
@@ -2432,13 +2786,24 @@ def _browse():
                 if not new_val:
                     new_val = default
                 if new_val:
-                    with _quiet():
-                        cmd_inject(argparse.Namespace(
-                            profile=None, also_active=False,
-                            set=["%s=%s" % (name, new_val)],
-                            unset=None, force=True, new_key=False))
-
-
+                    if profile_name is not None:
+                        try:
+                            parsed = json.loads(new_val)
+                        except json.JSONDecodeError:
+                            parsed = new_val
+                        profile[name] = parsed
+                        _save_profile(profile_name, profile)
+                    else:
+                        with _quiet():
+                            cmd_inject(argparse.Namespace(
+                                profile=_live_edit_profile_arg(active), also_active=False,
+                                set=["%s=%s" % (name, new_val)],
+                                unset=None, force=True, new_key=False))
+                        try:
+                            parsed = json.loads(new_val)
+                        except json.JSONDecodeError:
+                            parsed = new_val
+                        _mirror_active_profile(active, name, parsed)
 
 class _EolStdout:
     def __init__(self, real):
@@ -2461,7 +2826,6 @@ def _quiet():
     finally:
         sys.stdout.close()
         sys.stdout = old
-
 
 def _cls():
     if _COLOR:
@@ -2504,7 +2868,6 @@ UNMANAGE_SET = {
     "ChromeOsMultiProfileUserBehavior": "unrestricted",
     "ShowFullUrlsInAddressBar": True,
 }
-
 
 UNMANAGE_UNLOCK = {
     "AllowDinosaurEasterEgg": _Rec(True),
@@ -2553,7 +2916,7 @@ UNMANAGE_UNLOCK = {
 }
 
 def _unmanage():
-    """Unset everything on the live blob, then force the values that actually turn things back on."""
+    """Clear live policies, then set the Unmanage defaults."""
     pol_file, _ = _user_pol_files()
     if pol_file is None:
         return {**UNMANAGE_UNLOCK, **UNMANAGE_SET}
@@ -2666,6 +3029,168 @@ PRESETS = {
     },
 }
 
+def _profiles_menu():
+    while True:
+        PROFILES_DIR.mkdir(parents=True, exist_ok=True)
+        names = sorted(p.stem for p in PROFILES_DIR.glob("*.json"))
+        options = [("+ New profile", _BGREEN)]
+        for n in names:
+            options.append((n, _BMAGENTA))
+        idx = _menu("Profiles", options, subtitle="%d saved" % len(names))
+        if idx is None:
+            return
+        if idx == 0:
+            _cls()
+            _cls_end()
+            try:
+                name = _eline("\nNew profile name: ", "")
+            except EOFError:
+                return
+            name = name.strip()
+            if not name:
+                continue
+            if not _load_profile(name):
+                _cls()
+                print("Start %s from:" % _bold(name))
+                print(_DIM + "  [1] empty" + _RESET)
+                print(_DIM + "  [2] Fetched Server Policy" + _RESET)
+                _cls_end()
+                key = _key()
+                if key == '2':
+                    _drain_stdin()
+                    _cls()
+                    print("Capturing current live policy...")
+                    _cls_end()
+                    policies, skipped = _live_policy_as_profile()
+                    _drain_stdin()
+                    _cls()
+                    if policies is None:
+                        print("No live user policy found. Sign in first, "
+                              "starting empty instead.")
+                        _save_profile(name, {})
+                    else:
+                        _save_profile(name, policies)
+                        if skipped:
+                            print("(%d value(s) couldn't be decoded and were "
+                                  "skipped)" % skipped)
+                    _cls_end()
+                    try:
+                        input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                    except EOFError:
+                        return
+                else:
+                    _save_profile(name, {})
+            _profile_detail(name)
+        else:
+            _profile_detail(names[idx - 1])
+
+def _profile_detail(name):
+    window_start = 0
+    while True:
+        profile = _load_profile(name)
+        keys = sorted(profile.keys())
+        name_width = 55
+        content_w = name_width + 28
+
+        page_size = max(5, shutil.get_terminal_size((80, 24)).lines - 13)
+        window_start = max(0, min(window_start, max(0, len(keys) - page_size)))
+        visible = keys[window_start:window_start + page_size]
+
+        _cls()
+        title = "Profile: %s  (%d)" % (name, len(keys))
+        width = max(52, len(title) + 4, content_w)
+        print(_BCYAN + "+" + "-" * width + "+" + _RESET)
+        print(_BCYAN + "|" + _RESET + _bold(title.center(width)) + _BCYAN + "|" + _RESET)
+        print(_BCYAN + "+" + "-" * width + "+" + _RESET)
+        print()
+        for k in visible:
+            chunk, fnum = _PN2F.get(k, (0, -1))
+            kind, val = _py_kind(profile[k])
+            print("  %s" % _row_lbl(k, chunk, fnum, kind, val, name_width))
+        if not keys:
+            print(_dim("  (empty, press [e] to edit)"))
+        print()
+        if len(keys) > page_size:
+            rng = "%d-%d of %d" % (window_start + 1, window_start + len(visible), len(keys))
+            print((_DIM + rng + _RESET).center(width + len(_DIM) + len(_RESET)))
+        print(_DIM + "[up/down] scroll  [e] edit  [s] save  [i] inject  "
+                     "[r] rename  [d] delete  [esc] back" + _RESET)
+        _cls_end()
+
+        key = _key()
+        if key == 'UP':
+            window_start -= 1
+        elif key == 'DOWN':
+            window_start += 1
+        elif key == 'ESC':
+            return
+        elif key in ('e', 'E'):
+            _browse(profile_name=name)
+        elif key in ('s', 'S'):
+            current = _current_overrides()
+            if current is None:
+                print("Nothing injected right now, nothing to save.")
+                _cls_end()
+                try:
+                    input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                except EOFError:
+                    return
+                continue
+            profile.update(current)
+            _save_profile(name, profile)
+        elif key in ('i', 'I'):
+            if not profile:
+                print("Profile is empty, nothing to inject.")
+                _cls_end()
+                try:
+                    input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                except EOFError:
+                    return
+                continue
+            _cls()
+            _cls_end()
+            try:
+                already_paused = not _inject_profile(name)
+            except SystemExit:
+                already_paused = False
+            _cls_end()
+            if not already_paused:
+                try:
+                    input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                except EOFError:
+                    return
+        elif key in ('r', 'R'):
+            _cls()
+            print("Renaming %s:" % _bold(name))
+            _cls_end()
+            try:
+                new_name = _eline("New name: ", name)
+            except EOFError:
+                continue
+            new_name = new_name.strip()
+            if not new_name or new_name == name:
+                continue
+            if (PROFILES_DIR / ("%s.json" % new_name)).exists():
+                print("A profile named '%s' already exists." % new_name)
+                _cls_end()
+                try:
+                    input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
+                except EOFError:
+                    return
+                continue
+            (PROFILES_DIR / ("%s.json" % name)).rename(PROFILES_DIR / ("%s.json" % new_name))
+            name = new_name
+        elif key in ('d', 'D'):
+            _cls()
+            _cls_end()
+            try:
+                confirm = _confirm("Delete profile '%s'? [y/N]: " % name)
+            except EOFError:
+                return
+            if confirm:
+                (PROFILES_DIR / ("%s.json" % name)).unlink(missing_ok=True)
+                return
+
 def _preset_menu():
     while True:
         options = list(PRESETS.keys())
@@ -2701,6 +3226,7 @@ def cmd_interactive(args=None):
         except (SystemExit, Exception):
             pass
     while True:
+        _refresh_dm_key_backup_if_safe()
         inj_on = INJECT_STATE_FILE.exists()
         extra = [
             "%s%s policies known%s" % (_DIM, len(_PN2F), _RESET),
@@ -2717,18 +3243,24 @@ def cmd_interactive(args=None):
                 inj_state = {}
             resignin_needed = _need_resignin(inj_state)
             if resignin_needed:
-                extra.append('%sPolicies not synced, press "%s%sApply Now%s%s" to sync.%s'
-                             % (_YELLOW, _RESET, _BGREEN, _RESET, _YELLOW, _RESET))
+                extra.append(
+                    '%sPolicies not synced. Press %sApply now%s to sync, '
+                    'or %sSign out now%s if that fails.%s'
+                    % (_YELLOW, _BGREEN, _YELLOW, _RED, _YELLOW, _RESET))
 
         items = [
             ("Browse and edit policies", "browse", _BCYAN),
+            ("Profiles", "profiles", _BYELLOW),
             ("Presets", "presets", _BMAGENTA),
         ]
         if resignin_needed:
             items.append(("Apply now", "apply_live", _BGREEN))
+            items.append(("Sign out now", "sign_out", _RED))
         items += [
             ("Fetch fresh policy", "fetch_fresh", _BBLUE),
             ("Refresh policy mapping (advanced)", "refresh_mapping", _DIM),
+            ("Fix sign-in loop (advanced)", "repair_signin", _DIM),
+            ("Check for updates", "update", _DIM),
             ("Status", "status", _BCYAN),
             ("Exit", "exit", _WHITE),
         ]
@@ -2748,48 +3280,76 @@ def cmd_interactive(args=None):
         try:
             if action == "browse":
                 _browse()
-                continue  # _browse paces its own screen, skip the pause below
+                continue
             elif action == "presets":
                 _preset_menu()
-                continue  # _preset_menu paces its own screen too
+                continue
+            elif action == "profiles":
+                _profiles_menu()
+                continue
             elif action == "apply_live":
                 if not _try_apply():
-                    continue  # already paused after signing out
+                    continue
+            elif action == "sign_out":
+                if _confirm("Are you sure you want to sign out? All unsaved progress "
+                             "and such will be lost. [y/N]: "):
+                    cmd_sign_out(argparse.Namespace())
+                else:
+                    print("Cancelled.")
             elif action == "fetch_fresh":
+                active = _active_profile_name() if inj_on else None
                 if inj_on:
                     try:
                         state = json.loads(INJECT_STATE_FILE.read_text())
                     except Exception:
                         state = {}
                     overrides = state.get("overrides", {})
-                    print("This throws away current edits and pulls real policy from DM.")
+                    print("This pulls real policy from DM, replacing your current edits.")
+                    if active:
+                        print("Profile '%s' is in use; it'll be re-applied on top "
+                              "of the fresh policy." % active)
+                    elif overrides:
+                        print("Your current edits aren't in a profile; they'll be "
+                              "saved into a new one and re-applied.")
                     if overrides:
                         print("Currently changed (%s):" % len(overrides))
-                        for name, val in overrides.items():
+                        shown_items = list(overrides.items())[:10]
+                        for name, val in shown_items:
                             shown = "unset" if val == "UNSET" else val
                             print("  %s%s = %s%s" % (_DIM, name, shown, _RESET))
+                        if len(overrides) > len(shown_items):
+                            print(_dim("  ...and %d more" % (len(overrides) - len(shown_items))))
                         print()
                     _cls_end()
-                    confirm = input("Replace with normal policy? [y/N]: ").strip().lower()
-                    if confirm != "y":
+                    confirm = _confirm("Continue? [y/N]: ")
+                    if not confirm:
                         print("Cancelled.")
                         raise SystemExit
                 else:
                     print("%sLocal policy file already normal.%s\n" % (_DIM, _RESET))
-                _do_fetch()
+                backup_name = _do_fetch()
+                target = active or backup_name
+                if target:
+                    try:
+                        _inject_profile(target)
+                    except SystemExit:
+                        pass
             elif action == "refresh_mapping":
                 cmd_refresh_mapping(argparse.Namespace())
+            elif action == "repair_signin":
+                cmd_repair_signin(argparse.Namespace(user=_SELECTED_USER))
+            elif action == "update":
+                cmd_update(argparse.Namespace())
             elif action == "status":
                 cmd_status(argparse.Namespace())
         except SystemExit:
-            pass  # a subcommand called sys.exit() on an error; stay in the menu
+            pass
 
         _cls_end()
         try:
             input("\n%sPress Enter to continue...%s" % (_DIM, _RESET))
         except EOFError:
             break
-
 
 def _root_mnt():
     try:
@@ -2826,127 +3386,130 @@ def _env_check():
               "/run, /home/root, or /root",
               file=sys.stderr)
 
-
 def main():
     _env_check()
     ap = argparse.ArgumentParser(
-        description="DM policy fetch, inspect, and local-override tool")
+        description="ChromeOS DM policy tool")
     ap.add_argument("--user", metavar="EMAIL",
-                    help="signed-in user to edit (default: the primary user)")
+                    help="signed-in user to edit (default: primary)")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
-    p_fetch = sub.add_parser("fetch", help="Fetch fresh policy from DM server")
+    sub.add_parser("fetch", help="Fetch policy from the DM server")
 
-    p_dump = sub.add_parser("dump", help="Decode and display a policy snapshot")
-    p_dump.add_argument("snapshot", nargs="?", help="Path or label fragment (default: latest)")
+    p_dump = sub.add_parser("dump", help="Decode a policy snapshot")
+    p_dump.add_argument("snapshot", nargs="?", help="Path or label (default: latest)")
 
     p_diff = sub.add_parser("diff", help="Diff two snapshots")
     p_diff.add_argument("a")
     p_diff.add_argument("b")
 
-    p_edit = sub.add_parser("edit", help="Build/update a local-override profile")
+    p_pfp = sub.add_parser("profile-from-policy",
+        help="Save live policies as a new profile")
+    p_pfp.add_argument("name")
+
+    p_edit = sub.add_parser("edit", help="Edit a local-override profile")
     p_edit.add_argument("--name", default="default",
-                        help="Profile name (default: 'default')")
+                        help="Profile name (default: default)")
     p_edit.add_argument("--set", action="append", metavar="KEY=VALUE",
-                        help="Set a policy value (repeatable; value parsed as JSON)")
+                        help="Set a policy (repeatable)")
     p_edit.add_argument("--unset", action="append", metavar="KEY",
                         help="Remove a policy from the profile")
 
-    p_local = sub.add_parser("local", help="Manage active local-override files")
+    p_local = sub.add_parser("local", help="Manage local-override files")
     local_sub = p_local.add_subparsers(dest="local_cmd", required=True)
     local_sub.add_parser("list", help="List active overrides")
     p_la = local_sub.add_parser("apply", help="Apply a profile to managed/")
     p_la.add_argument("name")
     p_lr = local_sub.add_parser("remove", help="Remove a profile from managed/")
     p_lr.add_argument("name")
-    local_sub.add_parser("clear", help="Remove all local overrides")
+    local_sub.add_parser("clear", help="Clear all local overrides")
 
     sub.add_parser("profiles", help="List saved profiles")
-
-    sub.add_parser("status", help="Show current policy mode")
+    sub.add_parser("status", help="Show current status")
 
     p_inject = sub.add_parser(
         "inject",
-        help="Inject local overrides into the DM policy blob (makes local the source of truth)")
+        help="Inject local overrides into the DM policy blob")
     p_inject.add_argument("--profile", metavar="NAME",
-                          help="Apply this named profile (default: use active managed/ files)")
+                          help="Profile to apply (default: active managed/ files)")
     p_inject.add_argument("--also-active", action="store_true",
-                          help="With --profile, also include active managed/ overrides")
+                          help="Also include active managed/ overrides")
     p_inject.add_argument("--set", action="append", metavar="KEY=VALUE",
-                          help="Additional override (repeatable; value parsed as JSON)")
+                          help="Extra override (repeatable)")
     p_inject.add_argument("--unset", action="append", metavar="NAME",
-                          help="Revert a policy to unset/default instead of setting it (repeatable)")
+                          help="Unset a policy (repeatable)")
     p_inject.add_argument("--force", action="store_true",
-                          help="Re-inject even if injection is already active")
+                          help="Re-inject even if already active")
     p_inject.add_argument("--new-key", action="store_true",
-                          help="Generate a fresh key pair (discards the existing inject key)")
+                          help="Generate a fresh key pair")
 
-    sub.add_parser("eject",
-                   help="Restore original DM key and policy blob (undo inject)")
+    p_backup = sub.add_parser("backup",
+                              help="Save current inject overrides as a profile")
+    p_backup.add_argument("--label", default=None, help="Backup name suffix (default: manual)")
 
-    sub.add_parser("sign-out",
-                   help="End the session right now (session_manager StopSession over D-Bus)")
+    sub.add_parser("eject", help="Restore original DM key and policy")
+    sub.add_parser("sign-out", help="End the current session")
+    sub.add_parser("repair-signin", help="Fix a sign-in crash loop")
+    sub.add_parser("apply", help="Push the current injection live")
+    sub.add_parser("restart-chrome", help="Restart Chrome in the same session")
 
-    sub.add_parser("apply",
-                   help="Push the current injection live, no sign-out needed")
+    p_list = sub.add_parser("list", help="List known policy names")
+    p_list.add_argument("filter", nargs="?", help="Substring filter")
 
-    sub.add_parser("restart-chrome",
-                   help="Restart just the Chrome browser process, same session, no sign-in")
-
-    p_list = sub.add_parser("list", help="Search known Chrome policy names")
-    p_list.add_argument("filter", nargs="?", help="Substring filter (case-insensitive)")
-
-    p_get = sub.add_parser("get", help="Show a policy's current value on the live blob")
+    p_get = sub.add_parser("get", help="Show a policy's current value")
     p_get.add_argument("name")
 
-    p_toggle = sub.add_parser("toggle", help="Flip a boolean policy and inject it")
+    p_toggle = sub.add_parser("toggle", help="Flip a boolean policy")
     p_toggle.add_argument("name")
 
-    p_unset = sub.add_parser("unset",
-                             help="Revert a policy field to unset (Chrome's built-in default)")
+    p_unset = sub.add_parser("unset", help="Unset a policy to its default")
     p_unset.add_argument("name")
 
+    sub.add_parser("update", help="Check for and install updates")
+
     p_refresh = sub.add_parser("refresh-mapping",
-                   help="Re-download the policy name<->field-number map from Chromium source")
+                   help="Refresh the policy name/field map from Chromium")
     p_refresh.add_argument("--save-fallback", metavar="PATH",
-                           help="Also write a copy in the fallback JSON format, to push to GitHub for offline users")
+                           help="Also write a fallback JSON copy")
 
     p_verify = sub.add_parser("verify-mapping",
-                              help="Check the name<->field map against a chrome://policy export (or naming heuristics if none given)")
-    p_verify.add_argument("--export", help="Path to a chrome://policy 'Export to JSON' file")
+                              help="Check the name/field map against a policy export")
+    p_verify.add_argument("--export", help="chrome://policy Export to JSON file")
 
     p_fix = sub.add_parser("fix-mapping",
-                           help="Manually correct one field's mapping (saved to the override file, wins over refresh-mapping)")
+                           help="Correct one field's mapped name")
     p_fix.add_argument("field", type=int)
     p_fix.add_argument("name")
 
     p_block = sub.add_parser("dm-block",
-                             help="Block/unblock outbound access to the DM server. Used "
-                             "automatically by `apply`")
+                             help="Block or unblock the DM server")
     block_sub = p_block.add_subparsers(dest="block_cmd", required=True)
-    block_sub.add_parser("start", help="Block the DM server's current addresses")
-    block_sub.add_parser("stop", help="Remove the block")
-    block_sub.add_parser("status", help="Show whether it's currently blocked")
+    block_sub.add_parser("start", help="Block the DM server")
+    block_sub.add_parser("stop", help="Unblock the DM server")
+    block_sub.add_parser("status", help="Show block status")
 
-    sub.add_parser("interactive", help="Menu-driven interactive mode")
+    sub.add_parser("interactive", help="Interactive menu")
 
     if not sys.argv[1:] and not sys.stdin.isatty():
-        print("No subcommand given and stdin isn't a terminal. Pass a "
-              "subcommand (e.g. status), or save the script first.", file=sys.stderr)
+        print("No subcommand given and stdin isn't a terminal.", file=sys.stderr)
         sys.exit(1)
     argv = sys.argv[1:] if sys.argv[1:] else ["interactive"]
     args = ap.parse_args(argv)
     global _SELECTED_USER
     _SELECTED_USER = args.user
+    _refresh_dm_key_backup_if_safe()
 
     if   args.cmd == "fetch":    cmd_fetch(args)
     elif args.cmd == "dump":     cmd_dump(args)
     elif args.cmd == "edit":     cmd_edit(args)
     elif args.cmd == "profiles": cmd_profiles(args)
+    elif args.cmd == "profile-from-policy": cmd_profile_from_policy(args)
     elif args.cmd == "status":   cmd_status(args)
     elif args.cmd == "inject":   cmd_inject(args)
+    elif args.cmd == "backup":   cmd_backup(args)
     elif args.cmd == "eject":    cmd_eject(args)
     elif args.cmd == "sign-out": cmd_sign_out(args)
+    elif args.cmd == "repair-signin": cmd_repair_signin(args)
     elif args.cmd == "apply":    cmd_apply(args)
     elif args.cmd == "restart-chrome": cmd_restart_chrome(args)
     elif args.cmd == "list":     cmd_list_policies(args)
@@ -2954,6 +3517,7 @@ def main():
     elif args.cmd == "toggle":   cmd_toggle(args)
     elif args.cmd == "unset":    cmd_unset(args)
     elif args.cmd == "refresh-mapping": cmd_refresh_mapping(args)
+    elif args.cmd == "update": cmd_update(args)
     elif args.cmd == "verify-mapping": cmd_verify_mapping(args)
     elif args.cmd == "fix-mapping": cmd_fix_mapping(args)
     elif args.cmd == "dm-block": cmd_dm_block(args)
