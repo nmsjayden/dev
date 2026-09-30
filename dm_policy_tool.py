@@ -42,30 +42,95 @@ def _drain_stdin():
 
 _ESC_CANCEL = object()
 
-def _read_line_raw(prefill=""):
-    # handles ESC cancel, backspace, and cursor movement ourselves
+def _visible_len(s):
+    return len(re.sub(r'\x1b\[[0-9;]*m', '', s))
+
+def _cursor_col(fd):
+    import select
+    try:
+        os.write(1, b"\x1b[6n")
+        data = b""
+        while True:
+            r, _, _ = select.select([fd], [], [], 0.3)
+            if not r:
+                break
+            c = os.read(fd, 1)
+            if not c:
+                break
+            data += c
+            if c == b'R':
+                break
+        m = re.search(rb"\x1b\[\d+;(\d+)R", data)
+        if m:
+            return int(m.group(1))
+    except Exception:
+        pass
+    return None
+
+def _read_line_raw(prompt="", prefill=""):
+    if not sys.stdin.isatty():
+        return input(prompt).strip()
     _enter_raw()
     import select
     fd = sys.stdin.fileno()
-    buf = list(prefill)
-    pos = len(buf)  # cursor position within buf (0..len(buf))
-    sys.stdout.write(prefill)
+
+    pre, nl, online = prompt.rpartition('\n')
+    if nl:
+        sys.stdout.write(pre + '\n')
+    sys.stdout.write(online)
     sys.stdout.flush()
 
-    def redraw_from(i):
-        # reprint buf[i:], then park the cursor back at `pos`
-        tail = "".join(buf[i:])
-        sys.stdout.write(tail + " ")           # trailing space clears one leftover char
-        back = len(buf) - pos + 1              # +1 for the clearing space
-        if back:
-            sys.stdout.write("\b" * back)
+    plen = _visible_len(online)
+    col_now = _cursor_col(fd)
+    if col_now is not None:
+        plen = col_now - 1
+    cols = max(1, shutil.get_terminal_size((80, 24)).columns)
+
+    buf = list(prefill)
+    pos = len(buf)
+    oldpos = 0
+    oldrows = 1
+
+    def refresh():
+        nonlocal oldpos, oldrows
+        length = len(buf)
+        rows = max(1, (plen + length + cols - 1) // cols)
+        rpos = (plen + oldpos + cols) // cols
+        out = []
+        if oldrows - rpos > 0:
+            out.append("\x1b[%dB" % (oldrows - rpos))
+        for _ in range(oldrows - 1):
+            out.append("\r\x1b[0K\x1b[1A")
+        out.append("\r\x1b[0K")
+        out.append(online)
+        out.append("".join(buf))
+        if pos == length and length and (plen + length) % cols == 0:
+            out.append("\n\r")
+            rows += 1
+        rpos2 = (plen + pos + cols) // cols
+        if rows - rpos2 > 0:
+            out.append("\x1b[%dA" % (rows - rpos2))
+        c = (plen + pos) % cols
+        out.append("\r\x1b[%dC" % c if c else "\r")
+        oldpos = pos
+        oldrows = rows
+        sys.stdout.write("".join(out))
         sys.stdout.flush()
+
+    def finish(ret):
+        nonlocal pos
+        pos = len(buf)
+        refresh()
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+        return ret
+
+    refresh()
 
     while True:
         ch = os.read(fd, 1).decode(errors="ignore")
         if ch == '\x1b':
             seq = ""
-            # read the rest of the CSI/escape sequence (arrows, home/end, delete)
             while True:
                 r, _, _ = select.select([fd], [], [], 0.01)
                 if not r:
@@ -74,63 +139,61 @@ def _read_line_raw(prefill=""):
                 if not nxt:
                     break
                 seq += nxt
-                # CSI sequences terminate on a letter or '~'
                 if seq[-1].isalpha() or seq[-1] == '~':
                     break
                 if len(seq) >= 6:
                     break
             if seq == "":
-                sys.stdout.write("\n")
-                sys.stdout.flush()
-                return _ESC_CANCEL
-            if seq in ('[D', 'OD'):            # left
+                return finish(_ESC_CANCEL)
+            if seq in ('[D', 'OD'):
                 if pos > 0:
                     pos -= 1
-                    sys.stdout.write("\b")
-                    sys.stdout.flush()
-            elif seq in ('[C', 'OC'):          # right
+                    refresh()
+            elif seq in ('[C', 'OC'):
                 if pos < len(buf):
-                    sys.stdout.write(buf[pos])
-                    sys.stdout.flush()
                     pos += 1
-            elif seq in ('[H', 'OH', '[1~', '[7~'):   # home
-                if pos > 0:
-                    sys.stdout.write("\b" * pos)
-                    sys.stdout.flush()
+                    refresh()
+            elif seq in ('[H', 'OH', '[1~', '[7~'):
+                if pos != 0:
                     pos = 0
-            elif seq in ('[F', 'OF', '[4~', '[8~'):   # end
-                if pos < len(buf):
-                    sys.stdout.write("".join(buf[pos:]))
-                    sys.stdout.flush()
+                    refresh()
+            elif seq in ('[F', 'OF', '[4~', '[8~'):
+                if pos != len(buf):
                     pos = len(buf)
-            elif seq == '[3~':                 # delete (forward)
+                    refresh()
+            elif seq == '[3~':
                 if pos < len(buf):
                     buf.pop(pos)
-                    redraw_from(pos)
-            # any other sequence: ignore
+                    refresh()
             continue
         if ch in ('\r', '\n'):
-            sys.stdout.write("\n")
-            sys.stdout.flush()
-            return "".join(buf).strip()
-        if ch in ('\x7f', '\x08'):             # backspace
+            return finish("".join(buf).strip())
+        if ch in ('\x7f', '\x08'):
             if pos > 0:
                 buf.pop(pos - 1)
                 pos -= 1
-                sys.stdout.write("\b")
-                redraw_from(pos)
+                refresh()
             continue
-        if ch == '\x01':                       # ctrl-a -> home
-            if pos > 0:
-                sys.stdout.write("\b" * pos)
-                sys.stdout.flush()
+        if ch == '\x01':
+            if pos != 0:
                 pos = 0
+                refresh()
             continue
-        if ch == '\x05':                       # ctrl-e -> end
-            if pos < len(buf):
-                sys.stdout.write("".join(buf[pos:]))
-                sys.stdout.flush()
+        if ch == '\x05':
+            if pos != len(buf):
                 pos = len(buf)
+                refresh()
+            continue
+        if ch == '\x0b':
+            if pos < len(buf):
+                del buf[pos:]
+                refresh()
+            continue
+        if ch == '\x15':
+            if pos > 0:
+                del buf[:pos]
+                pos = 0
+                refresh()
             continue
         if ch == '\x03':
             raise KeyboardInterrupt
@@ -139,19 +202,13 @@ def _read_line_raw(prefill=""):
         if ch and ch.isprintable():
             buf.insert(pos, ch)
             pos += 1
-            if pos == len(buf):
-                sys.stdout.write(ch)
-                sys.stdout.flush()
-            else:
-                redraw_from(pos - 1)
+            refresh()
 
 def _eline(prompt, current):
     if not sys.stdin.isatty():
         typed = input(prompt).strip()
         return typed if typed else current
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    result = _read_line_raw(prefill=current)
+    result = _read_line_raw(prompt, prefill=current)
     if result is _ESC_CANCEL:
         return current
     return result if result else current
@@ -159,9 +216,7 @@ def _eline(prompt, current):
 def _confirm(prompt):
     if not sys.stdin.isatty():
         return input(prompt).strip().lower() == 'y'
-    sys.stdout.write(prompt)
-    sys.stdout.flush()
-    result = _read_line_raw()
+    result = _read_line_raw(prompt)
     if result is _ESC_CANCEL:
         return False
     return result.lower() == 'y'
@@ -1638,10 +1693,8 @@ def cmd_repair_signin(args):
     print("(downloads, cached files, local app state, everything)")
     print("and wipes account on next reboot. This cannot be undone.")
     print()
-    sys.stdout.write("Read the above carefully, then press Enter to continue, or esc to stop...")
-    sys.stdout.flush()
     try:
-        if _read_line_raw() is _ESC_CANCEL:
+        if _read_line_raw("Read the above carefully, then press Enter to continue, or esc to stop...") is _ESC_CANCEL:
             print("Stopped.")
             return
     except EOFError:
