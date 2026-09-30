@@ -43,45 +43,107 @@ def _drain_stdin():
 _ESC_CANCEL = object()
 
 def _read_line_raw(prefill=""):
-    # handles ESC cancel and backspace ourselves
+    # handles ESC cancel, backspace, and cursor movement ourselves
     _enter_raw()
     import select
     fd = sys.stdin.fileno()
     buf = list(prefill)
+    pos = len(buf)  # cursor position within buf (0..len(buf))
     sys.stdout.write(prefill)
     sys.stdout.flush()
+
+    def redraw_from(i):
+        # reprint buf[i:], then park the cursor back at `pos`
+        tail = "".join(buf[i:])
+        sys.stdout.write(tail + " ")           # trailing space clears one leftover char
+        back = len(buf) - pos + 1              # +1 for the clearing space
+        if back:
+            sys.stdout.write("\b" * back)
+        sys.stdout.flush()
+
     while True:
         ch = os.read(fd, 1).decode(errors="ignore")
         if ch == '\x1b':
             seq = ""
-            while len(seq) < 2:
+            # read the rest of the CSI/escape sequence (arrows, home/end, delete)
+            while True:
                 r, _, _ = select.select([fd], [], [], 0.01)
                 if not r:
                     break
-                seq += os.read(fd, 2 - len(seq)).decode(errors="ignore")
+                nxt = os.read(fd, 1).decode(errors="ignore")
+                if not nxt:
+                    break
+                seq += nxt
+                # CSI sequences terminate on a letter or '~'
+                if seq[-1].isalpha() or seq[-1] == '~':
+                    break
+                if len(seq) >= 6:
+                    break
             if seq == "":
                 sys.stdout.write("\n")
                 sys.stdout.flush()
                 return _ESC_CANCEL
+            if seq in ('[D', 'OD'):            # left
+                if pos > 0:
+                    pos -= 1
+                    sys.stdout.write("\b")
+                    sys.stdout.flush()
+            elif seq in ('[C', 'OC'):          # right
+                if pos < len(buf):
+                    sys.stdout.write(buf[pos])
+                    sys.stdout.flush()
+                    pos += 1
+            elif seq in ('[H', 'OH', '[1~', '[7~'):   # home
+                if pos > 0:
+                    sys.stdout.write("\b" * pos)
+                    sys.stdout.flush()
+                    pos = 0
+            elif seq in ('[F', 'OF', '[4~', '[8~'):   # end
+                if pos < len(buf):
+                    sys.stdout.write("".join(buf[pos:]))
+                    sys.stdout.flush()
+                    pos = len(buf)
+            elif seq == '[3~':                 # delete (forward)
+                if pos < len(buf):
+                    buf.pop(pos)
+                    redraw_from(pos)
+            # any other sequence: ignore
             continue
         if ch in ('\r', '\n'):
             sys.stdout.write("\n")
             sys.stdout.flush()
             return "".join(buf).strip()
-        if ch in ('\x7f', '\x08'):
-            if buf:
-                buf.pop()
-                sys.stdout.write("\b \b")
+        if ch in ('\x7f', '\x08'):             # backspace
+            if pos > 0:
+                buf.pop(pos - 1)
+                pos -= 1
+                sys.stdout.write("\b")
+                redraw_from(pos)
+            continue
+        if ch == '\x01':                       # ctrl-a -> home
+            if pos > 0:
+                sys.stdout.write("\b" * pos)
                 sys.stdout.flush()
+                pos = 0
+            continue
+        if ch == '\x05':                       # ctrl-e -> end
+            if pos < len(buf):
+                sys.stdout.write("".join(buf[pos:]))
+                sys.stdout.flush()
+                pos = len(buf)
             continue
         if ch == '\x03':
             raise KeyboardInterrupt
         if ch == '\x04':
             raise EOFError
         if ch and ch.isprintable():
-            buf.append(ch)
-            sys.stdout.write(ch)
-            sys.stdout.flush()
+            buf.insert(pos, ch)
+            pos += 1
+            if pos == len(buf):
+                sys.stdout.write(ch)
+                sys.stdout.flush()
+            else:
+                redraw_from(pos - 1)
 
 def _eline(prompt, current):
     if not sys.stdin.isatty():
