@@ -45,28 +45,6 @@ _ESC_CANCEL = object()
 def _visible_len(s):
     return len(re.sub(r'\x1b\[[0-9;]*m', '', s))
 
-def _cursor_col(fd):
-    import select
-    try:
-        os.write(1, b"\x1b[6n")
-        data = b""
-        while True:
-            r, _, _ = select.select([fd], [], [], 0.3)
-            if not r:
-                break
-            c = os.read(fd, 1)
-            if not c:
-                break
-            data += c
-            if c == b'R':
-                break
-        m = re.search(rb"\x1b\[\d+;(\d+)R", data)
-        if m:
-            return int(m.group(1))
-    except Exception:
-        pass
-    return None
-
 def _read_line_raw(prompt="", prefill=""):
     if not sys.stdin.isatty():
         return input(prompt).strip()
@@ -77,55 +55,42 @@ def _read_line_raw(prompt="", prefill=""):
     pre, nl, online = prompt.rpartition('\n')
     if nl:
         sys.stdout.write(pre + '\n')
-    sys.stdout.write(online)
-    sys.stdout.flush()
-
     plen = _visible_len(online)
-    col_now = _cursor_col(fd)
-    if col_now is not None:
-        plen = col_now - 1
-    cols = max(1, shutil.get_terminal_size((80, 24)).columns)
+
+    cols = max(20, shutil.get_terminal_size((80, 24)).columns)
+    if cols - plen - 1 < 8:
+        sys.stdout.write(online + '\n')
+        sys.stdout.flush()
+        online = ""
+        plen = 0
+    avail = max(8, cols - plen - 1)
+    cap = max(4, avail - 2)
 
     buf = list(prefill)
     pos = len(buf)
-    oldpos = 0
-    oldrows = 1
+    vs = 0
 
-    def refresh():
-        nonlocal oldpos, oldrows
-        length = len(buf)
-        rows = max(1, (plen + length + cols - 1) // cols)
-        rpos = (plen + oldpos + cols) // cols
-        out = []
-        if oldrows - rpos > 0:
-            out.append("\x1b[%dB" % (oldrows - rpos))
-        for _ in range(oldrows - 1):
-            out.append("\r\x1b[0K\x1b[1A")
-        out.append("\r\x1b[0K")
-        out.append(online)
-        out.append("".join(buf))
-        if pos == length and length and (plen + length) % cols == 0:
-            out.append("\n\r")
-            rows += 1
-        rpos2 = (plen + pos + cols) // cols
-        if rows - rpos2 > 0:
-            out.append("\x1b[%dA" % (rows - rpos2))
-        c = (plen + pos) % cols
-        out.append("\r\x1b[%dC" % c if c else "\r")
-        oldpos = pos
-        oldrows = rows
-        sys.stdout.write("".join(out))
+    def render():
+        nonlocal vs
+        if pos < vs:
+            vs = pos
+        elif pos >= vs + cap:
+            vs = pos - cap + 1
+        if vs < 0:
+            vs = 0
+        lead = "<" if vs > 0 else ""
+        seg = buf[vs:vs + cap]
+        trail = ">" if vs + len(seg) < len(buf) else ""
+        text = lead + "".join(seg) + trail
+        out = "\r" + online + text + "\x1b[K"
+        target = len(lead) + (pos - vs)
+        back = len(text) - target
+        if back > 0:
+            out += "\b" * back
+        sys.stdout.write(out)
         sys.stdout.flush()
 
-    def finish(ret):
-        nonlocal pos
-        pos = len(buf)
-        refresh()
-        sys.stdout.write("\n")
-        sys.stdout.flush()
-        return ret
-
-    refresh()
+    render()
 
     while True:
         ch = os.read(fd, 1).decode(errors="ignore")
@@ -139,61 +104,65 @@ def _read_line_raw(prompt="", prefill=""):
                 if not nxt:
                     break
                 seq += nxt
-                if seq[-1].isalpha() or seq[-1] == '~':
+                if len(seq) >= 2 and (seq[-1].isalpha() or seq[-1] == '~'):
                     break
                 if len(seq) >= 6:
                     break
             if seq == "":
-                return finish(_ESC_CANCEL)
+                sys.stdout.write("\n")
+                sys.stdout.flush()
+                return _ESC_CANCEL
             if seq in ('[D', 'OD'):
                 if pos > 0:
                     pos -= 1
-                    refresh()
+                    render()
             elif seq in ('[C', 'OC'):
                 if pos < len(buf):
                     pos += 1
-                    refresh()
+                    render()
             elif seq in ('[H', 'OH', '[1~', '[7~'):
                 if pos != 0:
                     pos = 0
-                    refresh()
+                    render()
             elif seq in ('[F', 'OF', '[4~', '[8~'):
                 if pos != len(buf):
                     pos = len(buf)
-                    refresh()
+                    render()
             elif seq == '[3~':
                 if pos < len(buf):
                     buf.pop(pos)
-                    refresh()
+                    render()
             continue
         if ch in ('\r', '\n'):
-            return finish("".join(buf).strip())
+            sys.stdout.write("\n")
+            sys.stdout.flush()
+            return "".join(buf).strip()
         if ch in ('\x7f', '\x08'):
             if pos > 0:
                 buf.pop(pos - 1)
                 pos -= 1
-                refresh()
+                render()
             continue
         if ch == '\x01':
             if pos != 0:
                 pos = 0
-                refresh()
+                render()
             continue
         if ch == '\x05':
             if pos != len(buf):
                 pos = len(buf)
-                refresh()
+                render()
             continue
         if ch == '\x0b':
             if pos < len(buf):
                 del buf[pos:]
-                refresh()
+                render()
             continue
         if ch == '\x15':
             if pos > 0:
                 del buf[:pos]
                 pos = 0
-                refresh()
+                render()
             continue
         if ch == '\x03':
             raise KeyboardInterrupt
@@ -202,7 +171,7 @@ def _read_line_raw(prompt="", prefill=""):
         if ch and ch.isprintable():
             buf.insert(pos, ch)
             pos += 1
-            refresh()
+            render()
 
 def _eline(prompt, current):
     if not sys.stdin.isatty():
@@ -297,7 +266,8 @@ def _key():
                 seq += os.read(fd, 2 - len(seq)).decode(errors="ignore")
             if seq == "":
                 return 'ESC'
-            result = {'[A': 'UP', '[B': 'DOWN', '[C': 'RIGHT', '[D': 'LEFT'}.get(seq)
+            result = {'[A': 'UP', '[B': 'DOWN', '[C': 'RIGHT', '[D': 'LEFT',
+                      'OA': 'UP', 'OB': 'DOWN', 'OC': 'RIGHT', 'OD': 'LEFT'}.get(seq)
             if result:
                 return result
             while select.select([fd], [], [], 0)[0]:
